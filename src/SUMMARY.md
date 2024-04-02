@@ -1,3 +1,4 @@
 # Summary
 
-- [Chapter 1](./chapter_1.md)
+- [如何获取随机数？](./sui_move_random_number.md)
+- 
