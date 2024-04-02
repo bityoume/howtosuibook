@@ -1,0 +1,6 @@
+[book]
+authors = ["bityoume"]
+language = "en"
+multilingual = false
+src = "src"
+title = "SUI Move开发必知必会"
