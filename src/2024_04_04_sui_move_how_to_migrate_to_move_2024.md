@@ -4,11 +4,12 @@
 
 ## 1 前言
 
-`SUI Move`在`2024`年迎来重大更新，引入了许多新功能，涵盖**新特性**，例如：**方法语法（`method syntax`）**、**位置域（`positional fields`）**、**循环标签（`loop labels`）**等，以及**不兼容更新**，例如：**数据类型可见性（Datatype visibility requirements）**、**可变性要求（Mutability requirements）**等。这些更新为`Move`编程语言引入了新的定义数据和调用函数的方式等，使得在`Sui`上构建应用程序更加高效灵活，也为未来要推出的新功能铺平道路。
+`SUI Move`在`2024`年迎来重大更新，引入了许多新功能，涵盖**新特性**，例如：**方法语法（`method syntax`）**、**位置域（`positional fields`）**、**循环标签（`loop labels`）**等，以及**不兼容更新**，例如：**数据类型可见性（Datatype visibility requirements）**、 **可变性要求（Mutability requirements）** 等。这些更新为`Move`编程语言引入了新的定义数据和调用函数的方式等，使得在`Sui`上构建应用程序更加高效灵活，也为未来要推出的新功能铺平道路。
 
-`SUI Move 2024`新增功能内容参考自：https://blog.sui.io/move-2024-migration-guide/，主要包括：
+本文中`SUI Move 2024`新增功能内容参考自：https://blog.sui.io/move-2024-migration-guide/，主要包括：
 
-- **新特性（`New features`）**:可以向前兼容的特性，即新旧语法都能进行正常编译
+- **新特性（`New features`）**
+  > 可以向前兼容的特性，即新旧语法都能进行正常编译
   - **方法语法（Method syntax）**
   - **索引语法（Index syntax）**
   - **位置域（Positional fields）**
@@ -17,7 +18,10 @@
   - **等式中的自动引用（Automatic referencing in equality）**
   - **循环标记（Loop labels）**
   - **带值跳出循环（`break` with value）**
-- **不兼容更新（`Breaking changes `）**：无法向前兼容，即不再支持旧语法，若编译会报错，历史代码可以`sui move migrate`命令自动迁移到新的写法
+
+
+- **不兼容更新（`Breaking changes `）**
+  > 无法向前兼容，即不再支持旧语法，若编译会报错
   - **数据类型可见性（Datatype visibility requirements）**
   - **可变性要求（Mutability requirements）**
   - **移除`friends`和`public(friend)`**
@@ -38,8 +42,8 @@
 
 在合约根目录里执行`sui move migrate`命令
 
-- 终端会显示要进行的更改的合约差异，如果接受更改，会自动将现存**历史版本（`legacy`）**的合约，迁移成**新版合约（`2024.beta`）**代码，并会更新`Move.toml`文件，同时也会生成一个`migration.patch`文件，将变更差异记录在其中。
-- 主要修改的代码就是上面提到的**不兼容更新（`Breaking changes `）**部分
+- 终端会显示要进行的更改的合约差异，如果接受更改，会自动将现存 **历史版本（`legacy`）** 的合约，迁移成 **新版合约（`2024.beta`）** 代码，并会更新`Move.toml`文件，同时也会生成一个`migration.patch`文件，将变更差异记录在其中。
+- 主要修改的代码就是上面提到的 **不兼容更新（`Breaking changes`）** 部分
 
 ### 2.3 自动迁移实操
 
@@ -83,7 +87,7 @@ Recorded edition in 'Move.toml'
 
 > 以下会通过一个合约示例，展示`SUI Move 2024`主要新增的语法特性，考虑到合约实现逻辑的连贯性，会混合使用**新特性**和**不兼容更新**的语法。
 >
-> 为了一目了然会标题旁做一下标记，以区分：**新特性（🎉）**和**不兼容更新（💥）**，并附上官方文档链接，方便大家查阅。
+> 为了一目了然会标题旁做一下标记，以区分：**新特性（🎉）** 和 **不兼容更新（💥）**，并附上官方文档链接，方便大家查阅。
 
 ### 3.1 可嵌套`use`别名（Nested `use`）🎉
 
