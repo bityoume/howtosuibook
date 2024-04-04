@@ -150,6 +150,10 @@ module bityoume::sui_move_2024 {
 }
 ```
 
+- 这是不兼容更新，如果使用旧的写法将会报错：
+
+  ![image-20240404234027016](assets/image-20240404234027016.png)
+
 ### 3.4 方法语法（Method syntax）🎉
 
 > [Method syntax](https://github.com/tnowacki/sui/blob/main/docs/content/guides/developer/advanced/move-2024-migration.mdx?ref=blog.sui.io#method-syntax)
