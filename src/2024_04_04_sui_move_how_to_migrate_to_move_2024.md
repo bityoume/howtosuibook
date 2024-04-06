@@ -6,7 +6,7 @@
 
 `SUI Move`在`2024`年迎来重大更新，引入了许多新功能，涵盖**新特性**，例如：**方法语法（`method syntax`）**、**位置域（`positional fields`）**、**循环标签（`loop labels`）**等，以及**不兼容更新**，例如：**数据类型可见性（Datatype visibility requirements）**、 **可变性要求（Mutability requirements）** 等。这些更新为`Move`编程语言引入了新的定义数据和调用函数的方式等，使得在`Sui`上构建应用程序更加高效灵活，也为未来要推出的新功能铺平道路。
 
-本文中`SUI Move 2024`新增功能内容参考自：https://blog.sui.io/move-2024-migration-guide/，主要包括：
+本文中`SUI Move 2024`新增功能内容参考自：https://blog.sui.io/move-2024-migration-guide/ ，主要包括：
 
 - **新特性（`New features`）**
   > 可以向前兼容的特性，即新旧语法都能进行正常编译
@@ -149,6 +149,10 @@ module bityoume::sui_move_2024 {
     }
 }
 ```
+
+- 这是不兼容更新，如果使用旧的写法将会报错：
+
+  ![image-20240404234027016](assets/image-20240404234027016.png)
 
 ### 3.4 方法语法（Method syntax）🎉
 
