@@ -13,6 +13,8 @@ sui 1.22.0-0362997459
 
 - **`client`的子命令很丰富，以下将介绍其中部分常用命令**
 
+可通过`help/-h`获取完整的子命令：
+
 ```bash
 $ sui client -h
 Client for interacting with the Sui network
@@ -631,6 +633,10 @@ $ client call --function claim_red_packet --package $PACKAGE_ID --module red_pac
 > Upgrade Move modules
 >
 > 详细示例可参看：[《SUI Move开发必知必会——如何进行合约升级？》](https://bityoume.github.io/howtosuibook/2024_01_21_sui_move_how_to_upgrade_package.html)
+>
+> ```bash
+> Usage: sui client upgrade [OPTIONS] --upgrade-capability <UPGRADE_CAPABILITY> --gas-budget <GAS_BUDGET> [package_path]
+> ```
 
 ```bash
 $ sui client upgrade --gas-budget 10000000 --upgrade-capability $UPGRADE_CAP_ID
