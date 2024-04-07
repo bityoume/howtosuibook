@@ -3,7 +3,7 @@
 # SUI Move开发必知必会
 
 - [基础篇]()
-    - [SUI Move常用命令](./2024_04_06_sui_move_common_commands.md)
+    - [SUI Move常用命令——网络交互命令（client）](./2024_04_06_sui_move_common_commands_1.md)
 
 - [语法篇]()
     - [SUI Move 2024迁移指南及新语法实践](./2024_04_04_sui_move_how_to_migrate_to_move_2024.md)
