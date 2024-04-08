@@ -198,7 +198,9 @@ $ sui client publish --gas-budget 100000000
 
 ## 前端开发
 
-### 初始化`SUI`客户端
+### 服务开发
+
+#### 初始化`SUI`客户端
 
 > `SUI`客户端适用于跟区块链节点进行交互的，会从链上获取状态和签名交易提交上链等。
 
@@ -221,7 +223,7 @@ export const PACKAGE_ID = process.env.REACT_APP_PACKAGE_ID;
 export const SUI_CLIENT = new SuiClient({ url: FULLNODE_URL });
 ```
 
-### 创建`SUI`服务
+#### 创建`SUI`服务
 
 > `SUI`服务是封装了与`SUI`链交互的相关方法，便于上层组件进行使用。
 
@@ -246,13 +248,13 @@ export class SuiService {
 }
 ```
 
-### 创建认证服务
+#### 创建认证服务
 
 - **创建文件**
 
 `src/utils/authService.ts`
 
-- **添加导入代码**
+- **导入依赖包**
 
 > 说明：
 >
@@ -414,8 +416,8 @@ export class AuthService {
 >
 > - 调用`getEd25519Keypair`函数获取到`Ed25519Keypair`对象
 > - 调用`getExtendedEphemeralPublicKey`函数生成扩展的临时公钥
-> - 构造生成待验证的负载信息（`verificationPayload`），信息包括：`JWT`、扩展的临时公钥、最大纪元、随机数、盐值和声明名称（`keyClaimName`）
-> - 调用`getMaxEpoch`获取最大纪元以及调用`getRandomness`获取随机数，都是为了创建`nonce`
+> - 构造生成待验证的负载信息（`verificationPayload`），信息包括：`JWT`、扩展的临时公钥、最大世代、随机数、盐值和声明名称（`keyClaimName`）
+> - 调用`getMaxEpoch`获取最大世代以及调用`getRandomness`获取随机数，都是为了创建`nonce`
 > - 调用`verifyPartialZkLoginSignature`接口通过验证部分`zkLogin`签名来验证用户
 
 ```tsx
@@ -484,7 +486,7 @@ export class AuthService {
 >
 > - 调用`getPartialZkLoginSignature`函数获取部分`zkLogin`签名
 > - 调用`getAddressSeed`获取地址种子
-> - 调用`getMaxEpoch`获取最大纪元
+> - 调用`getMaxEpoch`获取最大世代
 > - 最后调用`getZkLoginSignature`函数生成`zkLogin`签名
 
 ```tsx
@@ -505,6 +507,417 @@ export class AuthService {
     });
   }
 ```
+
+- **`walletAddress`（获取钱包地址）**
+
+> 此函数用于根据用户通过`OAuth`进行身份验证时返回的用户电子邮件获取钱包地址
+>
+> 实现逻辑：
+>
+> - 从`sessionStorage`获取`sui_jwt_token`
+> - 并获取其中的`email`字段，通过计算`hashcode`作为其盐值
+> - 调用`jwtToAddress`函数生成钱包地址，参数是`sui_jwt_token`数据和盐值
+
+```bash
+  static walletAddress() {
+    const email = AuthService.claims()["email"];
+    return jwtToAddress(AuthService.jwt(), AuthService.hashcode(email));
+  }
+```
+
+- **`isAuthenticated`（检查是否已认证身份）**
+
+> 此函数用于检查用户是否已通过身份验证。
+>
+> 实现逻辑：
+>
+> - 从`sessionStorage`获取`sui_jwt_token`，并检查它是否为`null`
+> - 不为`null`则用户已通过身份认证，反之则用户未通过身份认证
+
+```tsx
+  static isAuthenticated() {
+    const token = AuthService.jwt();
+    return token && token !== "null";
+  }
+```
+
+- **`login`（用户登录）**
+
+> 此函数用于用户登录。
+>
+> 实现逻辑：
+>
+> - 调用`getLatestSuiSystemState`函数，获取最新的`SUI`链状态，解构出当前的世代
+> - 基于当前世代，创建最大世代（`maxEpoch`）
+> - 创建`Ed25519Keypair`对象`ephemeralKeyPair`
+> - 调用`generateRandomness`函数生成随机数
+> - 调用`generateNonce`函数，传入`ephemeralKeyPair`公钥、最大世代、随机数，构造出`nonce`
+> - 构造`jwtData`对象，序列化后存储在`sessionStorage`的`jwt_data`中
+> - 然后，它向`OpenID`提供者`URL`发出`GET`请求，以获取授权端点
+> - 最后将用户重定向到授权端点
+
+```tsx
+async login() {
+    const { epoch } = await SUI_CLIENT.getLatestSuiSystemState();
+
+    const maxEpoch = Number(epoch) + 2222;
+    const ephemeralKeyPair = new Ed25519Keypair();
+    const randomness = generateRandomness();
+    const nonce = generateNonce(
+      ephemeralKeyPair.getPublicKey(),
+      maxEpoch,
+      randomness
+    );
+    const jwtData = {
+      maxEpoch,
+      nonce,
+      randomness,
+      ephemeralKeyPair,
+    };
+
+    console.log({ jwtData });
+
+    sessionStorage.setItem("jwt_data", JSON.stringify(jwtData));
+
+    const params = new URLSearchParams({
+      client_id: CLIENT_ID,
+      redirect_uri: REDIRECT_URL,
+      response_type: "id_token",
+      scope: "openid email",
+      nonce: nonce,
+    });
+
+    console.log({ params });
+    try {
+      const { data } = await axios.get(OPENID_PROVIDER_URL);
+      console.log({ data });
+      const authUrl = `${data.authorization_endpoint}?${params}`;
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error("Error initiating Google login:", error);
+    }
+  }
+}
+```
+
+- **JWT负载接口定义**
+
+> 在这个接口中，定义了一些标准的 `JWT` 声明，如 `iss`（发行人）、`sub`（主题）、`aud`（受众）等
+>
+> 这些属性都是可选的
+
+```tsx
+export interface JwtPayload {
+  iss?: string;
+  sub?: string;
+  aud?: string[] | string;
+  exp?: number;
+  nbf?: number;
+  iat?: number;
+  jti?: string;
+}
+```
+
+- **部分zkLogin签名的类型定义**
+
+> 这里边定义了部分`zkLogin`签名，较完整`zkLogin`签名类型删除了 `addressSeed` 属性。
+>
+> 实现逻辑：
+>
+> - `Parameters` 工具类型返回一个元组（tuple），其中包含了函数参数的类型。`Parameters<typeof getZkLoginSignature>` 返回了 `getZkLoginSignature` 函数的参数类型的元组
+> - 使用 `["0"]` 索引操作，我们可以提取这个元组中的第一个元素（即第一个参数的类型）
+> - 在获取到第一个参数的类型之后，继续使用 `["inputs"]` 索引操作来获取 `inputs` 属性的类型
+> - 通过 `Omit` 类型操作符，从这个类型中删除 `addressSeed` 属性，从而创建一个新的类型 `PartialZkLoginSignature`
+
+```tsx
+export type PartialZkLoginSignature = Omit<
+  Parameters<typeof getZkLoginSignature>["0"]["inputs"],
+  "addressSeed"
+>;
+```
+
+#### 创建笔记服务
+
+> 该服务封装了跟笔记合约交互的接口
+
+- **创建文件**
+
+`src/utils/noteService.ts`
+
+- **`addNote`（新建笔记）**
+
+> 调用此函数可以创建笔记
+
+```tsx
+  async addNote(title: string, body: string) {
+    const txb = new TransactionBlock();
+    const txData = {
+      target: `${PACKAGE_ID}::notes::create_note`,
+      arguments: [txb.pure.string(title), txb.pure.string(body)],
+    };
+    return this.makeMoveCall(txData, txb);
+  }
+```
+
+- **`getNotes`（查询笔记）**
+
+> 调用此函数可以查询笔记。
+>
+> 实现逻辑：
+>
+> - 获取钱包地址
+> - 获取该地址所有对象
+> - 遍历对象获取对象类型和内容
+> - 返回类型是笔记类型的内容，即笔记数据
+
+```tsx
+  async getNotes() {
+    const sender = AuthService.walletAddress();
+    let ownedObjects = await SUI_CLIENT.getOwnedObjects({
+      owner: sender,
+    });
+    let ownedObjectsDetails = await Promise.all(
+      ownedObjects.data.map(async (obj) => {
+        return await SUI_CLIENT.getObject({
+          id: obj.data.objectId,
+          options: { showType: true, showContent: true },
+        });
+      })
+    );
+    return ownedObjectsDetails
+      .filter((obj) => {
+        return `${PACKAGE_ID}::notes::Note` === obj.data.type;
+      })
+      .map((obj) => obj.data.content["fields"]);
+  }
+```
+
+- **`deleteNote`（删除笔记）**
+
+> 调用此函数可以删除笔记。
+
+```tsx
+  async deleteNote(id: any) {
+    const sender = AuthService.walletAddress();
+    const txb = new TransactionBlock();
+    txb.setSender(sender);
+    const txData = {
+      target: `${PACKAGE_ID}::notes::delete_note`,
+      arguments: [txb.object(id.id)],
+    };
+    await this.makeMoveCall(txData, txb);
+  }
+```
+
+- **`makeMoveCall`（合约调用）**
+
+> 调用此函数会签名交易，并发起合约调用。
+>
+> 实现逻辑：
+>
+> - 调用`AuthService.getEd25519Keypair`获取密钥对`keypair`对象
+> - 调用`AuthService.walletAddress()`获取钱包地址，它将交易的发送方设置为用户的钱包地址
+> - 构造交易块交易数据，并使用`keypair`私钥签名交易数据，得到用户签名数据`userSignature`
+> - 将用户签名数据`userSignature`作为参数，调用`AuthService.generateZkLoginSignature`函数获取到`zkLogin`签名数据`zkLoginSignature`
+> - 使用`zkLogin`签名数据`zkLoginSignature`作为交易的真正签名，提交交易上链
+
+```tsx
+  private async makeMoveCall(txData: any, txb: TransactionBlock) {
+    const keypair = AuthService.getEd25519Keypair();
+    const sender = AuthService.walletAddress();
+    txb.setSender(sender);
+    txb.moveCall(txData);
+    const { bytes, signature: userSignature } = await txb.sign({
+      client: SUI_CLIENT,
+      signer: keypair,
+    });
+    const zkLoginSignature = await AuthService.generateZkLoginSignature(
+      userSignature
+    );
+    return SUI_CLIENT.executeTransactionBlock({
+      transactionBlock: bytes,
+      signature: zkLoginSignature,
+    });
+  }
+```
+
+### 组件开发
+
+#### 设置路由
+
+- **修改文件**
+
+`src/index.js`
+
+- **修改后代码**
+
+> 我们设置了2个路由：
+>
+> - `/notes`：渲染`App`组件
+> - `/`：渲染`Callback`组件（当前还没有，进行创建）
+
+```tsx
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import "./index.css";
+import App from "./App";
+import reportWebVitals from "./reportWebVitals";
+import "bootstrap-icons/font/bootstrap-icons.css";
+import "bootstrap/dist/css/bootstrap.min.css";
+import Callback from "./Callback";
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(
+  <Router>
+    <Routes>
+      <Route path="/notes" element={<App />} />
+      <Route path="/" element={<Callback />} />
+    </Routes>
+  </Router>
+);
+
+reportWebVitals();
+```
+
+#### 创建`Callback`组件
+
+- **创建文件**
+
+`src/Callback.js`
+
+- **添加代码**
+
+> 此回调组件将用于处理来自身份验证服务的回调。
+>
+> 实现逻辑：
+>
+> - 使用`useEffect`钩子函数在加载此页面时触发`handleCallback`函数
+> - 该函数从`URL`中获取`JWT`，并将其存储在`sessionStorage`中
+> - 再将用户重定向到`/notes`路由
+
+```tsx
+import React, { useEffect } from "react";
+
+const Callback = () => {
+  useEffect(() => {
+    const handleCallback = async () => {
+      try {
+        const params = new URLSearchParams(window.location.hash.substr(1));
+        const jwtToken = params.get("id_token");
+
+        sessionStorage.setItem("sui_jwt_token", jwtToken);
+        window.location.href = "/notes";
+      } catch (error) {
+        console.error("Error handling callback:", error);
+      }
+    };
+
+    handleCallback();
+  }, []);
+
+  return (
+    <div>
+      <p>Processing callback...</p>
+    </div>
+  );
+};
+
+export default Callback;
+```
+
+#### 创建`App`组件
+
+- **修改文件**
+
+`src/App.js`
+
+- **导入依赖包**
+
+```tsx
+import React, { useState, useCallback, useEffect } from "react";
+import { Container, Nav } from "react-bootstrap";
+import Wallet from "./components/Wallet";
+import Notes from "./components/notes/Notes";
+import Cover from "./components/utils/Cover";
+import coverImg from "./assets/img/notebook.jpg";
+import { Notification } from "./components/utils/Notifications";
+import "./App.css";
+import { AuthService } from "./utils/authService";
+import { SuiService } from "./utils/suiService";
+```
+
+- **创建App组件**
+
+> 实现逻辑：
+>
+> - 创建`getBalance`函数，用于获取用户钱包余额。若用户已经登录成功（认证成功）将能获取到钱包余额
+> - 创建`logout`函数，用于用于退出，将清空`sessionStorage`，并重定向到`/notes`路由
+
+```tsx
+const App = () => {
+  const [balance, setBalance] = useState("0");
+
+  let walletAddress;
+  const suiService = new SuiService();
+
+  const getBalance = useCallback(async () => {
+    try {
+      if (AuthService.isAuthenticated()) {
+        setBalance(
+          await suiService.getFormattedBalance(AuthService.walletAddress())
+        );
+      }
+    } catch (error) {
+      console.log({ error });
+    } finally {
+    }
+  });
+
+  const logout = async () => {
+    sessionStorage.clear();
+
+    window.location.href = "/notes";
+  };
+
+  if (AuthService.isAuthenticated()) {
+    walletAddress = AuthService.walletAddress();
+  }
+
+  useEffect(() => {
+    getBalance();
+  }, [getBalance]);
+
+  return (
+    <>
+      <Notification />
+      {AuthService.isAuthenticated() ? (
+        <Container fluid="md">
+          <Nav className="justify-content-end pt-3 pb-5">
+            <Nav.Item>
+              <Wallet
+                address={walletAddress}
+                amount={balance}
+                symbol="SUI"
+                destroy={logout}
+              />
+            </Nav.Item>
+          </Nav>
+          <main>
+            <Notes />
+          </main>
+        </Container>
+      ) : (
+        <Cover name="SUI zkLogin Notes" coverImg={coverImg} />
+      )}
+    </>
+  );
+};
+
+export default App;
+```
+
+
 
 
 
