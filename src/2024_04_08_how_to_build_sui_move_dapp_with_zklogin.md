@@ -642,7 +642,7 @@ export type PartialZkLoginSignature = Omit<
 
 - **创建文件**
 
-`src/utils/noteService.ts`
+`src/utils/notesService.ts`
 
 - **`addNote`（新建笔记）**
 
@@ -853,6 +853,9 @@ import { SuiService } from "./utils/suiService";
 >
 > - 创建`getBalance`函数，用于获取用户钱包余额。若用户已经登录成功（认证成功）将能获取到钱包余额
 > - 创建`logout`函数，用于用于退出，将清空`sessionStorage`，并重定向到`/notes`路由
+> - `Notification`组件已经实现了，用于展示通知信息
+> - 如果用户已经通过身份验证，将呈现钱包组件和`Notes`组件。钱包组件用于显示用户的钱包地址和余额，`Notes`组件用于显示用户笔记（后续将实现该组件）
+> - 如果用户未通过身份验证，将呈现`Cover`组件，让用户进行登录，该组件也已实现
 
 ```tsx
 const App = () => {
@@ -917,8 +920,253 @@ const App = () => {
 export default App;
 ```
 
+#### 创建`Notes`组件
 
+- **创建目录和文件**
 
+> **Notes.js**：此文件是笔记列表展示组件
+> **Notes.js**：此文件是单个笔记展示组件
+> **AddNote.js**：此文件是添加笔记组件
 
+```
+src
+├── components
+│   ├── notes
+│   │   ├── AddNote.js
+│   │   ├── Note.js
+│   │   └── Notes.js
+```
+
+- **创建`Note`组件**
+
+在`src/components/notes/Note.js`中添加以下代码：
+
+```tsx
+import React from "react";
+import { Card, Button, Col } from "react-bootstrap";
+
+const Note = ({ note, deleteNote }) => {
+  const { id, title, body } = note;
+
+  return (
+    <Col key={id.id}>
+      <Card className=" h-100">
+        <Card.Body className="d-flex  flex-column text-center">
+          <Card.Title>{title}</Card.Title>
+          <Card.Text className="flex-grow-1 ">{body}</Card.Text>
+          <Button
+            variant="outline-dark"
+            onClick={() => deleteNote(id)}
+            className="w-100 py-3"
+          >
+            Delete
+          </Button>
+        </Card.Body>
+      </Card>
+    </Col>
+  );
+};
+
+export default Note;
+```
+
+- **创建`AddNote`组件**
+
+在`src/components/notes/AddNote.js`中添加以下代码：
+
+```tsx
+import React, { useState } from "react";
+import PropTypes from "prop-types";
+import { Button, Modal, Form, FloatingLabel } from "react-bootstrap";
+
+const AddNote = ({ save }) => {
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const isFormFilled = () => title && body;
+
+  const [show, setShow] = useState(false);
+
+  const handleClose = () => setShow(false);
+  const handleShow = () => setShow(true);
+
+  return (
+    <>
+      <Button
+        onClick={handleShow}
+        variant="dark"
+        className="rounded-pill px-0"
+        style={{ width: "38px" }}
+      >
+        <i className="bi bi-plus"></i>
+      </Button>
+      <Modal show={show} onHide={handleClose} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>New Note</Modal.Title>
+        </Modal.Header>
+        <Form>
+          <Modal.Body>
+            <FloatingLabel
+              controlId="inputTitle"
+              label="Title"
+              className="mb-3"
+            >
+              <Form.Control
+                type="text"
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                }}
+                placeholder="Title"
+              />
+            </FloatingLabel>
+            <FloatingLabel
+              controlId="inputBody"
+              label="Body"
+              className="mb-3"
+            >
+              <Form.Control
+                as="textarea"
+                placeholder="body"
+                style={{ height: "80px" }}
+                onChange={(e) => {
+                  setBody(e.target.value);
+                }}
+              />
+            </FloatingLabel>
+          </Modal.Body>
+        </Form>
+        <Modal.Footer>
+          <Button variant="outline-secondary" onClick={handleClose}>
+            Close
+          </Button>
+          <Button
+            variant="dark"
+            disabled={!isFormFilled()}
+            onClick={() => {
+              save({
+                title,
+                body,
+              });
+              handleClose();
+            }}
+          >
+            Save note
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </>
+  );
+};
+
+AddNote.propTypes = {
+  save: PropTypes.func.isRequired,
+};
+
+export default AddNote;
+```
+
+- **创建`Notes`组件**
+
+在`src/components/notes/Notes.js`中添加以下代码：
+
+```tsx
+import React, { useEffect, useState, useCallback } from "react";
+import { toast } from "react-toastify";
+import AddNote from "./AddNote";
+import Note from "./Note";
+import Loader from "../utils/Loader";
+import { Row } from "react-bootstrap";
+import { NotificationSuccess, NotificationError } from "../utils/Notifications";
+import { NotesService } from "../../utils/notesService";
+
+const Notes = () => {
+  const [notes, setNotes] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const notesService = new NotesService();
+
+  const getNotes = useCallback(async () => {
+    try {
+      setLoading(true);
+      setNotes(await notesService.getNotes());
+    } catch (error) {
+      console.log({ error });
+    } finally {
+      setLoading(false);
+    }
+  });
+
+  const addNote = async (data) => {
+    try {
+      setLoading(true);
+      const { title, body } = data;
+      await notesService.addNote(title, body);
+
+      getNotes();
+      toast(<NotificationSuccess text="A note added successfully." />);
+    } catch (error) {
+      console.log({ error });
+      toast(<NotificationError text="Failed to create a note." />);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteNote = async (id) => {
+    try {
+      await notesService.deleteNote(id);
+      getNotes();
+
+      toast(<NotificationSuccess text="Delete the note successfully" />);
+    } catch (error) {
+      toast(<NotificationError text="Failed to delete the note." />);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    getNotes();
+  }, []);
+
+  return (
+    <>
+      {!loading ? (
+        <>
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <h1 className="fs-4 fw-bold mb-0">ZK Login</h1>
+            <AddNote save={addNote} />
+          </div>
+          <Row xs={1} sm={2} lg={3} className="g-3  mb-5 g-xl-4 g-xxl-5">
+            {notes.map((_note) => (
+              <Note
+                note={{
+                  ..._note,
+                }}
+                deleteNote={deleteNote}
+              />
+            ))}
+          </Row>
+        </>
+      ) : (
+        <Loader />
+      )}
+    </>
+  );
+};
+
+export default Notes;
+```
 
 ## dApp测试
+
+### 启动
+
+```bash
+$ yarn start
+```
+
+![image-20240410003200467](assets/image-20240410003200467.png)
+
+### 登录
+
+![image-20240410003323982](assets/image-20240410003323982.png)
