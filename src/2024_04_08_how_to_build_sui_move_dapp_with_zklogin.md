@@ -1,8 +1,8 @@
-# SUI Move开发必知必会——如何构建一个基于zklogin的SUI Move dApp？
+# SUI Move开发必知必会——如何构建一个基于zkLogin的SUI Move dApp？
 
 *rzexin 2024.04.08*
 
-## 前言
+## 1 前言
 
 本文将在`SUI`区块链上使用`React`前端和`Move`合约构建笔记本`Dapp`，笔记本合约允许用户创建和删除笔记，该`Dapp`将集成`zkLogin`，以允许用户使用传统`web2`的登录方式实现安全的用户身份验证。
 
@@ -14,23 +14,23 @@
 
 本文参考自：https://dacade.org/communities/sui/challenges/19885730-fb83-477a-b95b-4ab265b61438/learning-modules/c9e21ff5-e7b3-4583-b21c-00c7176c10cc
 
-## 依赖准备
+## 2 依赖准备
 
-### 样板代码获取
+### 2.1 样板代码获取
 
-#### （1）下载样板代码
+#### 2.1.1 下载样板代码
 
 ```bash
 $ git clone https://github.com/dacadeorg/zk-login-boilerplate
 ```
 
-#### （2）依赖安装
+#### 2.1.2 依赖安装
 
 ```bash
 $ yarn install
 ```
 
-#### （3）样板代码结构说明
+#### 2.1.3 样板代码结构说明
 
 - **代码结构**
 
@@ -65,21 +65,21 @@ zk-login-boilerplate/
   - **`download_zhkey.sh`**：此文件是下载`zkey.sh`脚本文件，该脚本用户签名交易
   - **`package.json`**：此文件包含`React`应用程序的依赖项和脚本
 
-### 创建应用验证服务
+### 2.2 创建应用验证服务
 
 我们将为应用程序设置`Google OAuth`凭据。由于`zkLogin`使用`Oauth`对用户进行身份验证并对交易进行签名，因此这是`zkLogin`工作所必需的。
 
-#### 访问`Google`控制台
+#### 2.2.1 访问`Google`控制台
 
 https://console.cloud.google.com/
 
-#### 创建项目
+#### 2.2.2 创建项目
 
 ![image-20240408160639335](assets/image-20240408160639335.png)
 
 ![image-20240408160846717](assets/image-20240408160846717.png)
 
-#### 创建凭证
+#### 2.2.3 创建凭证
 
 ![image-20240408161355951](assets/image-20240408161355951.png)
 
@@ -89,23 +89,23 @@ https://console.cloud.google.com/
 
 ![image-20240408163454210](assets/image-20240408163454210.png)
 
-#### 记录凭证
+#### 2.2.4 记录凭证
 
 > 记录下创建**客户端ID**和**客户端密钥**到安全位置。
 
 ![image-20240408163634156](assets/image-20240408163634156.png)
 
-#### 配置环境变量
+#### 2.2.5 配置环境变量
 
 在样板代码工程中，创建`.env`文件，添加以下环境变量：
 
 ```ini
-REACT_APP_CLIENT_ID="xxx.apps.googleusercontent.com" 
-REACT_APP_PROVER_URL="https://prover-dev.mystenlabs.com/v1"
-REACT_APP_REDIRECT_URL="http://localhost:8080"
-REACT_APP_OPENID_PROVIDER_URL="https://accounts.google.com/.well-known/openid-configuration"
-REACT_APP_FULLNODE_URL="https://fullnode.testnet.sui.io:443"
-REACT_APP_PACKAGE_ID="0x8a94d111c184ce61ad6a82387fa37170ba3673d2595f27b18089762437e93008"
+REACT_APP_CLIENT_ID=xxx.apps.googleusercontent.com 
+REACT_APP_PROVER_URL=https://prover-dev.mystenlabs.com/v1
+REACT_APP_REDIRECT_URL=http://localhost:8080
+REACT_APP_OPENID_PROVIDER_URL=https://accounts.google.com/.well-known/openid-configuration
+REACT_APP_FULLNODE_URL=http://127.0.0.1:9000
+REACT_APP_PACKAGE_ID=0x3d133870aa4959c2804430d8d582d907537b521cff595fce865734abf96da560
 ```
 
 环境变量说明：
@@ -117,15 +117,98 @@ REACT_APP_PACKAGE_ID="0x8a94d111c184ce61ad6a82387fa37170ba3673d2595f27b180897624
 - **REACT_APP_FULLNODE_URL**：这是节点`RPC URL`，即`SUI`区块链地址，这里使用测试网
 - **REACT_APP_PACKAGE_ID**：这是合约地址，在合约开发章节中部署合约后得到的`PackageID`
 
-## 合约开发
+### 2.3 运行本地网络
 
-### 初始化合约工程
+#### 2.3.1 启动本地测试网
+
+```bash
+$ RUST_LOG="off,sui_node=info" ./target/release/sui-test-validator 
+Graphql port not provided. Graphql service will not run.
+`with_indexer` flag unset. Indexer service will not run.
+Starting Sui validator with config: ClusterTestOpt {
+    env: NewLocal,
+    faucet_address: Some(
+        "127.0.0.1:9123",
+    ),
+    fullnode_address: Some(
+        "0.0.0.0:9000",
+    ),
+    epoch_duration_ms: Some(
+        60000,
+    ),
+    indexer_address: None,
+    pg_address: postgres:*****@localhost:5432/sui_indexer,
+    config_dir: None,
+    graphql_address: None,
+}
+
+......
+
+Fullnode RPC URL: http://127.0.0.1:9000
+Keys saved as Base64 with 33 bytes `flag || privkey` ($BASE64_STR). 
+        To see Bech32 format encoding, use `sui keytool export $SUI_ADDRESS` where 
+        $SUI_ADDRESS can be found with `sui keytool list`. Or use `sui keytool convert $BASE64_STR`.
+Faucet URL: http://0.0.0.0:9123
+
+......
+```
+
+#### 2.3.2 添加并切换到本地网络
+
+```bash
+$ sui client new-env --alias localnet --rpc http://127.0.0.1:9000
+
+$ sui client switch --env localnet
+Active environment switched to [localnet]
+
+$ sui client envs 
+╭───────────┬───────────────────────────────────────┬────────╮
+│ alias     │ url                                   │ active │
+├───────────┼───────────────────────────────────────┼────────┤
+│ mainnet   │ https://sui-mainnet.nodeinfra.com:443 │        │
+│ testnet   │ https://fullnode.testnet.sui.io:443   │        │
+│ devnet    │ https://fullnode.devnet.sui.io:443    │        │
+│ localnet  │ http://127.0.0.1:9000                 │ *      │
+╰───────────┴───────────────────────────────────────┴────────╯
+```
+
+#### 2.3.3 领水
+
+>   该领水地址将是后续部署笔记合约的地址。
+
+```bash
+$ export JASON=0x5c5882d73a6e5b6ea1743fb028eff5e0d7cc8b7ae123d27856c5fe666d91569a
+
+$ curl --location --request POST 'http://127.0.0.1:9123/gas' --header 'Content-Type: application/json' \
+--data-raw "{
+    \"FixedAmountRequest\": {
+        \"recipient\": \"${JASON}\"
+    }
+}"
+{"transferredGasObjects":[{"amount":200000000000,"id":"0x40abfd0db528a45305c451b0d42b5fd1b5bb877606e044e9c7b1dd2e00cfe74f","transferTxDigest":"AiVCygkwL1y8iszWYZeoPMNZbr7cBMNM19tWV94wPHYL"},{"amount":200000000000,"id":"0x6fb9c3ad089cb97663241c79aee304dde81ae3b8caf864ece096f1a2af520300","transferTxDigest":"AiVCygkwL1y8iszWYZeoPMNZbr7cBMNM19tWV94wPHYL"},{"amount":200000000000,"id":"0x829f5a16abd7b3597b68b2d7280c5211b5c344cdec680de08d120c3bb59d310e","transferTxDigest":"AiVCygkwL1y8iszWYZeoPMNZbr7cBMNM19tWV94wPHYL"},{"amount":200000000000,"id":"0xc42638c19dabd3dbaba60d809883587e3dae8c92b4167946efad21495a2f7331","transferTxDigest":"AiVCygkwL1y8iszWYZeoPMNZbr7cBMNM19tWV94wPHYL"},{"amount":200000000000,"id":"0xcf27a3c2f6bb1a34e853537f6529a7e7e2951efb3d6ec779961efaccf77d562c","transferTxDigest":"AiVCygkwL1y8iszWYZeoPMNZbr7cBMNM19tWV94wPHYL"}],"error":null}
+
+$ sui client gas
+[warn] Client/Server api version mismatch, client api version : 1.22.0, server api version : 1.23.0
+╭────────────────────────────────────────────────────────────────────┬────────────────────┬──────────────────╮
+│ gasCoinId                                                          │ mistBalance (MIST) │ suiBalance (SUI) │
+├────────────────────────────────────────────────────────────────────┼────────────────────┼──────────────────┤
+│ 0x40abfd0db528a45305c451b0d42b5fd1b5bb877606e044e9c7b1dd2e00cfe74f │ 200000000000       │ 200.00           │
+│ 0x6fb9c3ad089cb97663241c79aee304dde81ae3b8caf864ece096f1a2af520300 │ 200000000000       │ 200.00           │
+│ 0x829f5a16abd7b3597b68b2d7280c5211b5c344cdec680de08d120c3bb59d310e │ 200000000000       │ 200.00           │
+│ 0xc42638c19dabd3dbaba60d809883587e3dae8c92b4167946efad21495a2f7331 │ 200000000000       │ 200.00           │
+│ 0xcf27a3c2f6bb1a34e853537f6529a7e7e2951efb3d6ec779961efaccf77d562c │ 200000000000       │ 200.00           │
+╰────────────────────────────────────────────────────────────────────┴────────────────────┴──────────────────╯
+```
+
+## 3 合约开发
+
+### 3.1 初始化合约工程
 
 ```bash
 $ sui move new notes
 ```
 
-### 编写合约代码
+### 3.2 编写合约代码
 
 这是一个非常简单的笔记合约示例，允许用户创建和删除笔记。
 
@@ -168,39 +251,31 @@ module bityoume::notes {
 }
 ```
 
-### 部署合约到测试网
+### 3.3 部署合约到本地网
+
+-   **使用前面领水地址，进行部署**
 
 ```bash
 $ sui client publish --gas-budget 100000000
-
-
-│  ┌──                                                                                             │
-│  │ ObjectID: 0xf136c53f32243c6dab22897f4f4afc5c2786b1e061835d7a704a8ecac467fa91                  │
-│  │ Sender: 0x5c5882d73a6e5b6ea1743fb028eff5e0d7cc8b7ae123d27856c5fe666d91569a                    │
-│  │ Owner: Shared                                                                                 │
-│  │ ObjectType: 0x8a94d111c184ce61ad6a82387fa37170ba3673d2595f27b18089762437e93008::notes::Notes  │
-│  │ Version: 28078187                                                                             │
-│  │ Digest: F4qpSJAe6agFU6dc6dhDL3jMWz9bjcCVWYBh6yDEK5rJ                                          │
-│  └──                                                                                             │
-
-│ Published Objects:                                                                               │
-│  ┌──                                                                                             │
-│  │ PackageID: 0x8a94d111c184ce61ad6a82387fa37170ba3673d2595f27b18089762437e93008                 │
-│  │ Version: 1                                                                                    │
-│  │ Digest: moGUVjEhcetspYvmAkbnbTutGvu1fdpJFhaQPLJgQNc                                           │
-│  │ Modules: notes                                                                                │
-│  └──                                                                                             │
 ```
 
-### 合约基本功能测试
+-   **记录合约初始化创建`PackageID`和共享的笔记本`notes`对象`ID`**
+
+```bash
+export PACKAGE_ID=0x3d133870aa4959c2804430d8d582d907537b521cff595fce865734abf96da560
+
+export NOTES=0x27cf2811a205a73ae03be19ee6dd098d0dd7f87b4a09d654c2b6f77617f65d1d
+```
+
+### 3.4 合约基本功能测试
 
 合约比较简单，基本功能测试略。
 
-## 前端开发
+## 4 前端开发
 
-### 服务开发
+### 4.1 服务开发
 
-#### 初始化`SUI`客户端
+#### 4.1.1 初始化`SUI`客户端
 
 > `SUI`客户端适用于跟区块链节点进行交互的，会从链上获取状态和签名交易提交上链等。
 
@@ -223,7 +298,7 @@ export const PACKAGE_ID = process.env.REACT_APP_PACKAGE_ID;
 export const SUI_CLIENT = new SuiClient({ url: FULLNODE_URL });
 ```
 
-#### 创建`SUI`服务
+#### 4.1.2 创建`SUI`服务
 
 > `SUI`服务是封装了与`SUI`链交互的相关方法，便于上层组件进行使用。
 
@@ -248,7 +323,7 @@ export class SuiService {
 }
 ```
 
-#### 创建认证服务
+#### 4.1.3 创建认证服务
 
 - **创建文件**
 
@@ -560,7 +635,7 @@ export class AuthService {
 async login() {
     const { epoch } = await SUI_CLIENT.getLatestSuiSystemState();
 
-    const maxEpoch = Number(epoch) + 2222;
+    const maxEpoch = Number(epoch) + 2;
     const ephemeralKeyPair = new Ed25519Keypair();
     const randomness = generateRandomness();
     const nonce = generateNonce(
@@ -636,7 +711,7 @@ export type PartialZkLoginSignature = Omit<
 >;
 ```
 
-#### 创建笔记服务
+#### 4.1.4 创建笔记服务
 
 > 该服务封装了跟笔记合约交互的接口
 
@@ -741,9 +816,9 @@ export type PartialZkLoginSignature = Omit<
   }
 ```
 
-### 组件开发
+### 4.2 组件开发
 
-#### 设置路由
+#### 4.2.1 设置路由
 
 - **修改文件**
 
@@ -780,7 +855,7 @@ root.render(
 reportWebVitals();
 ```
 
-#### 创建`Callback`组件
+#### 4.2.2 创建`Callback`组件
 
 - **创建文件**
 
@@ -826,7 +901,7 @@ const Callback = () => {
 export default Callback;
 ```
 
-#### 创建`App`组件
+#### 4.2.3 创建`App`组件
 
 - **修改文件**
 
@@ -920,7 +995,7 @@ const App = () => {
 export default App;
 ```
 
-#### 创建`Notes`组件
+#### 4.2.4 创建`Notes`组件
 
 - **创建目录和文件**
 
@@ -1157,9 +1232,9 @@ const Notes = () => {
 export default Notes;
 ```
 
-## dApp测试
+## 5 dApp测试
 
-### 启动
+### 5.1 启动
 
 ```bash
 $ yarn start
@@ -1167,6 +1242,53 @@ $ yarn start
 
 ![image-20240410003200467](assets/image-20240410003200467.png)
 
-### 登录
+### 5.2 登录
+
+-   **点击`Login with Google`按钮进行登陆**
 
 ![image-20240410003323982](assets/image-20240410003323982.png)
+
+-   **当完成身份认证后，将看到如下页面**
+
+![image-20240410195019610](assets/image-20240410195019610.png)
+
+### 5.3 领水
+
+-   **点击右上角按钮，可以查看到我们通过zkLogin创建的用户地址，此时余额为0**
+
+![image-20240410195400092](assets/image-20240410195400092.png)
+
+-   **为用户进行领水**
+
+```bash
+$ export ALICE=0xe9e913980c7269d0bb51dbcc49acab221c77d1968514458f94a5a162eb6a9aa6
+
+$ curl --location --request POST 'http://127.0.0.1:9123/gas' --header 'Content-Type: application/json' \
+--data-raw "{
+    \"FixedAmountRequest\": {
+        \"recipient\": \"${ALICE}\"
+    }
+}"
+```
+
+-   **领水后可以看到余额发生变化**
+
+![image-20240410195708605](assets/image-20240410195708605.png)
+
+### 5.4 发布笔记
+
+-   **编写笔记**
+
+![image-20240410200535223](assets/image-20240410200535223.png)
+
+-   **成功发布笔记**
+
+![image-20240410200555796](assets/image-20240410200555796.png)
+
+## 6 后记
+
+至此，一个简单的基于`zkLogin`的`SUI Move dApp`就开发完了🎉
+
+欢迎关注微信公众号：**Move中文**，开启你的 **Sui Move** 之旅！
+
+![image.png](assets/Z8vjzKbI6612ac129882e.png)
