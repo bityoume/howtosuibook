@@ -12,3 +12,4 @@
     - [如何获取随机数？](./2024_04_02_sui_move_how_to_get_random_number.md)
 - [实战篇]()
     - [如何构建一个基于zkLogin的SUI Move dApp?](./2024_04_08_how_to_build_sui_move_dapp_with_zklogin.md)
+    - [如何使用Sui TypeScript SDK进行交易发送和事件监听?](./2024_04_14_how_to_use_sui_typescript_sdk_1.md)
