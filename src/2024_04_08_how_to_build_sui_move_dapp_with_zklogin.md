@@ -87,7 +87,7 @@ https://console.cloud.google.com/
 
 根据需要进行配置后，点击【创建】：
 
-![image-20240408163454210](assets/image-20240408163454210.png)
+<img src="assets/image-20240408163454210.png" alt="image-20240408163454210" style="zoom:90%;" />
 
 #### 2.2.4 记录凭证
 
@@ -1240,23 +1240,23 @@ export default Notes;
 $ yarn start
 ```
 
-![image-20240410003200467](assets/image-20240410003200467.png)
+<img src="assets/image-20240410003200467.png" alt="image-20240410003200467" style="zoom: 50%;" />
 
 ### 5.2 登录
 
 -   **点击`Login with Google`按钮进行登陆**
 
-![image-20240410003323982](assets/image-20240410003323982.png)
+<img src="assets/image-20240410003323982.png" alt="image-20240410003323982" style="zoom:50%;" />
 
 -   **当完成身份认证后，将看到如下页面**
 
-![image-20240410195019610](assets/image-20240410195019610.png)
+<img src="assets/image-20240410195019610.png" alt="image-20240410195019610" style="zoom:50%;" />
 
 ### 5.3 领水
 
 -   **点击右上角按钮，可以查看到我们通过zkLogin创建的用户地址，此时余额为0**
 
-![image-20240410195400092](assets/image-20240410195400092.png)
+<img src="assets/image-20240410195400092.png" alt="image-20240410195400092" style="zoom:50%;" />
 
 -   **为用户进行领水**
 
@@ -1273,17 +1273,17 @@ $ curl --location --request POST 'http://127.0.0.1:9123/gas' --header 'Content-T
 
 -   **领水后可以看到余额发生变化**
 
-![image-20240410195708605](assets/image-20240410195708605.png)
+<img src="assets/image-20240410195708605.png" alt="image-20240410195708605" style="zoom:50%;" />
 
 ### 5.4 发布笔记
 
 -   **编写笔记**
 
-![image-20240410200535223](assets/image-20240410200535223.png)
+<img src="assets/image-20240410200535223.png" alt="image-20240410200535223" style="zoom: 40%;" />
 
 -   **成功发布笔记**
 
-![image-20240410200555796](assets/image-20240410200555796.png)
+<img src="assets/image-20240410200555796.png" alt="image-20240410200555796" style="zoom:50%;" />
 
 ## 6 后记
 
@@ -1291,4 +1291,4 @@ $ curl --location --request POST 'http://127.0.0.1:9123/gas' --header 'Content-T
 
 欢迎关注微信公众号：**Move中文**，开启你的 **Sui Move** 之旅！
 
-![image.png](assets/Z8vjzKbI6612ac129882e.png)
+<img src="assets/Z8vjzKbI6612ac129882e.png" alt="image.png" style="zoom: 50%;" />
