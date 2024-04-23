@@ -4,20 +4,20 @@
 
 [TOC]
 
-## 前言
+## 1 前言
 
 `DeepBook`是`SUI`的第一个**原生流动性层**，`DeepBook`为代币交易提供能力支持。通过它可以创建流动性池、处理存款和提款，以及执行各种资产交换等操作。
 
-本文将介绍`DeepBook`合约提供的部分基础方法和功能，并进行合约开发及交互实践。
+本文将介绍`DeepBook`合约的基础功能和方法，并进行合约开发及交互实践。
 
-主要参考的资料：
+参考资料：
 
 -   https://docs.sui.io/standards/deepbook
 -   https://github.com/MystenLabs/sui/tree/main/crates/sui-framework/packages/deepbook
 
 -   https://dacade.org/zh/communities/sui/challenges/19885730-fb83-477a-b95b-4ab265b61438/learning-modules/fc2e67a1-520d-4fae-a318-38414babc803
 
-## 基本概念
+## 2 基本概念
 
 -   **流动性池（`Liquidity Pool`）**
 
@@ -53,9 +53,9 @@
 
     通过发布新的买入或卖出订单来为市场提供流动性的参与者。
 
-## DeepBook核心结构
+## 3 DeepBook核心结构
 
-### 流动性池结构（`Pool`）
+### 3.1 流动性池结构（`Pool`）
 
 ```rust
 struct Pool<phantom BaseAsset, phantom QuoteAsset> has key, store {
@@ -91,7 +91,7 @@ struct Pool<phantom BaseAsset, phantom QuoteAsset> has key, store {
 }
 ```
 
-### 托管账户结构（`Custodian`）
+### 3.2 托管账户结构（`Custodian`）
 
 ```rust
     // Custodian for limit orders.
@@ -113,7 +113,7 @@ struct Pool<phantom BaseAsset, phantom QuoteAsset> has key, store {
 
 
 
-### 订单结构（`Order`）
+### 3.3 订单结构（`Order`）
 
 - 对于每个交易池，订单`ID`对于每个开放订单都是递增且唯一的
 
@@ -150,9 +150,9 @@ struct Pool<phantom BaseAsset, phantom QuoteAsset> has key, store {
     }
 ```
 
-## DeepBook基础方法
+## 4 DeepBook基础方法
 
-### 创建流动性池（`create_pool`）
+### 4.1 创建流动性池（`create_pool`）
 
 -   在`DeepBook`中创建流动性池子（`create_pool`）时，需要指定的参数有：
     -   `BaseAsset`：基础资产类型
@@ -288,9 +288,9 @@ struct Pool<phantom BaseAsset, phantom QuoteAsset> has key, store {
     }
 ```
 
-### 限价单
+### 4.2 限价单
 
-#### 创建托管账户（`create_account`）
+#### （1）创建托管账户（`create_account`）
 
 -   该账户仅用于限价单，在下限价单之前，交易者需要先创建托管账户存放资产
 
@@ -322,7 +322,7 @@ struct Pool<phantom BaseAsset, phantom QuoteAsset> has key, store {
     }
 ```
 
-#### 存入资产（`deposit_base`、`deposit_quote`）
+#### （2）存入资产（`deposit_base`、`deposit_quote`）
 
 - 交易者可以将基础资产或报价资产存入其托管账户，以便日后用于下限价单。包括：
 - **存入基础资产**
@@ -380,7 +380,7 @@ struct Pool<phantom BaseAsset, phantom QuoteAsset> has key, store {
     }
 ```
 
-#### 提取资产（`withdraw_base`、`withdraw_quote`）
+#### （3）提取资产（`withdraw_base`、`withdraw_quote`）
 
 - 相应的有2个提取资产的方法
 
@@ -416,7 +416,7 @@ struct Pool<phantom BaseAsset, phantom QuoteAsset> has key, store {
     }
 ```
 
-#### 挂限价单（`place_limit_order`）
+#### （4）挂限价单（`place_limit_order`）
 
 - 挂单前需确保已经有了托管账户，并且拥有足够用于交易的基础资产或报价资产
 - 返回值：成交的基础资产数量、成交的报价资产数量、是否为挂单方订单、挂单方订单的ID
@@ -460,9 +460,9 @@ struct Pool<phantom BaseAsset, phantom QuoteAsset> has key, store {
     }
 ```
 
-### 市价单
+### 4.3 市价单
 
-#### 挂市价单（`place_market_order`）
+#### （1）挂市价单（`place_market_order`）
 
 - 挂市价单不需要托管账户
 
@@ -495,9 +495,9 @@ struct Pool<phantom BaseAsset, phantom QuoteAsset> has key, store {
     }
 ```
 
-### 资产交换
+### 4.4 资产交换
 
-#### 基础资产兑换成报价资产（`swap_exact_base_for_quote`）
+#### （1）基础资产兑换成报价资产（`swap_exact_base_for_quote`）
 
 ```rust
     // for smart routing
@@ -530,7 +530,7 @@ struct Pool<phantom BaseAsset, phantom QuoteAsset> has key, store {
     }
 ```
 
-#### 报价资产兑换成基础资产（`swap_exact_quote_for_base`）
+#### （2）报价资产兑换成基础资产（`swap_exact_quote_for_base`）
 
 ```rust
     // for smart routing
@@ -560,13 +560,11 @@ struct Pool<phantom BaseAsset, phantom QuoteAsset> has key, store {
     }
 ```
 
+## 5 合约开发
 
+>   我们将实现流动性池创建、托管账户管理、限价单和市价单以及资产交换。
 
-## 合约开发
-
->   我们将实现流动性池创建、托管账户管理、限价单和市价单以及资产提取。
-
-### 工程创建
+### 5.1 工程创建
 
 -   **新建项目**
 
@@ -574,7 +572,7 @@ struct Pool<phantom BaseAsset, phantom QuoteAsset> has key, store {
 $ sui move new howtosui_deepbook
 ```
 
-### WBTC模块构建
+### 5.2 WBTC模块构建
 
 >   该文件实现包装比特币（`WBTC`）模块的基本实现，包括：初始化、铸造和销毁功能
 
@@ -603,7 +601,7 @@ module howtosui::wbtc {
 }
 ```
 
-### SUI DeepBook模块构建
+### 5.3 SUI DeepBook模块构建
 
 >   该模块实现`SUI DeepBook`的主合约文件，功能包括：创建流动性池、处理存款和提款，以及执行各种资产交换操作
 
@@ -896,9 +894,9 @@ module howtosui::deepbook {
     }
 ```
 
-## 环境准备
+## 6 环境准备
 
-### 创建帐号
+### 6.1 创建帐号
 
 - **创建两个帐号**
 
@@ -917,20 +915,20 @@ export YASMINE=0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca36
 export YOYO=0x9a5be5ddb2962cb7b6ee7a39ca261f30c13ce95fcd0f5150005174337d2e5701
 ```
 
-### 启动本地节点
+### 6.2 启动本地节点
 
 ```bash
 $ ./target/release/sui-test-validator 
 ```
 
-### 切换环境为本地节点
+### 6.3 切换环境为本地节点
 
 ```bash
 $ sui client switch --env localnet
 Active environment switched to [localnet]
 ```
 
-### 帐号领水
+### 6.4 帐号领水
 
 > 分别为两个帐号进行领水
 
@@ -948,9 +946,9 @@ $ sui client faucet
 Request successful. It can take up to 1 minute to get the coin. Run sui client gas to check your gas coins.
 ```
 
-## 合约测试
+## 7 合约测试
 
-### 合约部署
+### 7.1 合约部署
 
 > 切换到帐号1进行合约部署
 
@@ -1003,7 +1001,7 @@ export QUOTE_COIN_TYPE=$PACKAGE_ID::wbtc::WBTC
 export BASE_COIN_TYPE=0x2::sui::SUI
 ```
 
-### 创建流动性池
+### 7.2 创建流动性池
 
 > 帐号1创建流动性池，需要获取该地址下的`COIN ID`用于支付创建流动性池的手续费
 
@@ -1047,7 +1045,7 @@ export POOL_ID=0xd3779782c4e6058839a6aeed790e664dafa842beb5e41345c786726e38e7f60
 export POOL_OWNER_CAP=0x8129d70e149d2a8e94c58232904bd43f99ff9dbe49ff0f8d078a0db6b11bfd59
 ```
 
-### 创建托管账户
+### 7.3 创建托管账户
 
 >   分别为两个帐号创建托管账户
 
@@ -1097,7 +1095,7 @@ $ sui client call --package $PACKAGE_ID  --module deepbook --function new_custod
 export YOYO_ACCOUNT_CAP_ID=0xb27024d108af1d60e674d9bb555ed793caef0225d4870b7319b2d8c6d69db3ce
 ```
 
-### 铸造WBTC
+### 7.4 铸造WBTC
 
 >   我们需要先铸造一些`WBTC`，以便我们可以存入到流动性池中。
 >
@@ -1145,7 +1143,7 @@ export YASMINE_WBTC_OBJECT_ID=0x8c77cf2d7edcc8a88ef6425fee4a1697e5bf279e6f1e6c4a
 export YOYO_WBTC_OBJECT_ID=0x6dad061ce67422b4125ab86014248a22320414fa43c7fcd4575af02ac5b2eeaf
 ```
 
-### 存入资产
+### 7.5 存入资产
 
 > 切换到帐号1，分别存入基础资产和报价资产到帐号1的托管账户中
 
@@ -1203,9 +1201,9 @@ $ sui client call --package $PACKAGE_ID  --module deepbook --function make_quote
 
 ![image-20240422234128500](assets/image-20240422234128500.png)
 
-### 挂限价单
+### 7.6 挂限价单
 
-#### 挂限价单1
+#### （1）挂限价单1
 
 - **执行命令**
 
@@ -1261,7 +1259,7 @@ $ sui client call --package $PACKAGE_ID  --module deepbook --function place_limi
 
 ![image-20240422235943605](assets/image-20240422235943605.png)
 
-#### 挂限价单2
+#### （2）挂限价单2
 
 - **执行命令**
 
@@ -1295,7 +1293,7 @@ $ sui client call --package $PACKAGE_ID  --module deepbook --function place_limi
 
 ![image-20240423000448972](assets/image-20240423000448972.png)
 
-#### 挂限价单3
+#### （3）挂限价单3
 
 - **执行命令**
 
@@ -1345,7 +1343,7 @@ $ sui client call --package $PACKAGE_ID  --module deepbook --function place_limi
 
 ![image-20240423000949581](assets/image-20240423000949581.png)
 
-#### 挂限价单4
+#### （4）挂限价单4
 
 - **执行命令**
 
@@ -1387,7 +1385,7 @@ $ sui client call --package $PACKAGE_ID  --module deepbook --function place_limi
 
 ![image-20240423001210866](assets/image-20240423001210866.png)
 
-### 挂市价单
+### 7.7 挂市价单
 
 >   切换到用户2，执行以市价单购买资产的命令
 >
@@ -1424,7 +1422,7 @@ $ sui client call --package $PACKAGE_ID  --module deepbook --function place_base
 
 ![image-20240423001926513](assets/image-20240423001926513.png)
 
-### 资产交换
+### 7.8 资产交换
 
 - **执行命令**
 
