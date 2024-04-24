@@ -1,4 +1,4 @@
-# SUI Move开发必知必会——使用SUI DeepBook构建DEX入门
+SUI Move开发必知必会——使用SUI DeepBook构建DEX入门
 
 *rzexin 2024.04.18*
 
@@ -8,7 +8,7 @@
 
 `DeepBook`是`SUI`的第一个**原生流动性层**，`DeepBook`为代币交易提供能力支持。通过它可以创建流动性池、处理存款和提款，以及执行各种资产交换等操作。
 
-本文将介绍`DeepBook`合约的基础功能和方法，并进行合约开发及交互实践。
+本文将介绍`DeepBook`合约的基础功能和方法，并进行合约开发及交互实践。如果文中有错误或理解不到位的地方，欢迎指正。
 
 参考资料：
 
@@ -27,7 +27,7 @@
 
     基础资产是指正在被交易的资产，而报价资产是用来表示基础资产价值的资产。
 
-    例如：在`BTC/USDT`交易对中，`BTC`是基础资产，表示我们正在交易比特币；而`USDT`是报价资产，表示我们用泰达币来衡量比特币的价值。
+    例如：在`SUI/USDT`交易对中，`SUI`是基础资产，表示我们正在交易`SUI`；而`USDT`是报价资产，表示我们用`USDT`来衡量`SUI`币的价值。
 
 -   **托管账户（`Custodian Account`）**
 
@@ -419,9 +419,14 @@ struct Pool<phantom BaseAsset, phantom QuoteAsset> has key, store {
 #### （4）挂限价单（`place_limit_order`）
 
 - 挂单前需确保已经有了托管账户，并且拥有足够用于交易的基础资产或报价资产
+- `is_bid`：表示卖出或买入基础资产
+    - `true`表示使用报价资产购买基础资产（即：使用`USDT`购买`SUI`）
+    - `false`表示出售基础资产获得报价资产（即：卖出`SUI`获得`USDT`）
+
 - 返回值：成交的基础资产数量、成交的报价资产数量、是否为挂单方订单、挂单方订单的ID
-- 当限价订单未成功匹配时，将返回`false`以表示未成功匹配，并返回一个无意义的订单ID：0
-- 当限价订单成功匹配时，我们将返回`true`以表示成功匹配，并返回相应的订单ID
+    - 当限价订单未成功匹配时，将返回`false`以表示未成功匹配，并返回一个无意义的订单ID：0
+    - 当限价订单成功匹配时，我们将返回`true`以表示成功匹配，并返回相应的订单ID
+
 
 ```rust
     /// Place a limit order to the order book.
@@ -572,30 +577,30 @@ struct Pool<phantom BaseAsset, phantom QuoteAsset> has key, store {
 $ sui move new howtosui_deepbook
 ```
 
-### 5.2 WBTC模块构建
+### 5.2 USDT模块构建
 
->   该文件实现包装比特币（`WBTC`）模块的基本实现，包括：初始化、铸造和销毁功能
+>   该文件是`USDT`模块的基本实现，包括：初始化、铸造和销毁功能。我们将用来作为报价资产。
 
 ```rust
-module howtosui::wbtc {
+module howtosui::usdt {
     use sui::coin::{Coin, TreasuryCap, Self};
 
-    public struct WBTC has drop {}
+    public struct USDT has drop {}
 
     #[allow(unused_function)]
-    fun init(witness: WBTC, ctx: &mut TxContext) {
-        let (treasury, metadata) = coin::create_currency(witness, 6, b"WBTC", b"", b"", option::none(), ctx);
+    fun init(witness: USDT, ctx: &mut TxContext) {
+        let (treasury, metadata) = coin::create_currency(witness, 6, b"USDT", b"", b"", option::none(), ctx);
         transfer::public_freeze_object(metadata);
         transfer::public_transfer(treasury, tx_context::sender(ctx))
     }
 
     public entry fun mint(
-        treasury_cap: &mut TreasuryCap<WBTC>, amount: u64, recipient: address, ctx: &mut TxContext
+        treasury_cap: &mut TreasuryCap<USDT>, amount: u64, recipient: address, ctx: &mut TxContext
     ) {
         treasury_cap.mint_and_transfer(amount, recipient, ctx)
     }
 
-    public entry fun burn(treasury_cap: &mut TreasuryCap<WBTC>, coin: Coin<WBTC>) {
+    public entry fun burn(treasury_cap: &mut TreasuryCap<USDT>, coin: Coin<USDT>) {
         treasury_cap.burn(coin);
     }
 }
@@ -960,42 +965,61 @@ $ sui client publish --gas-budget 100000000
 - **关键日志**
 
 ```bash
+╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Object Changes                                                                                                          │
+├─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 │ Created Objects:                                                                                                        │
 │  ┌──                                                                                                                    │
-│  │ ObjectID: 0x249ffa3da2b2169bfb24a1eb6dba75198eb02b22be4ded8d70c4d68bff2a0eb9                                         │
+│  │ ObjectID: 0x152d8efeb8a0faac31206910f2ce3f16a41734c9c82cffb4c71ce9d8029ad770                                         │
 │  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                                           │
 │  │ Owner: Account Address ( 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366 )                        │
-│  │ ObjectType: 0x2::coin::TreasuryCap<0x62537fc5da5602d6aa4d832b9a1207077b3267c49bfb8dac9fa9ee9e4ec3c57e::wbtc::WBTC>   │
-│  │ Version: 3                                                                                                           │
-│  │ Digest: HtsjY2miT6udzLH3KDMKTMX7z4T43H7zPxUWAcd1Y3qm                                                                 │
+│  │ ObjectType: 0x2::coin::TreasuryCap<0xc0d0e0ce8fd43db69eb4e2cb5861ea6eac5e26c663a4ad5448fdb9b7ccfb94b0::usdt::USDT>   │
+│  │ Version: 4                                                                                                           │
+│  │ Digest: 8EjahBU3MKMkv33avPr9YnHsi2F3QXeaMCv5GHigf22n                                                                 │
 │  └──                                                                                                                    │
-
 │  ┌──                                                                                                                    │
-│  │ ObjectID: 0xd654fd3c07ec481e6f2dfde500a506f15cd21e6aae9ef5b4fc1c3af383a67fcc                                         │
+│  │ ObjectID: 0x1a5222c0cde631bb3507da7e9c78309c75cca553c0464260b815d45d7d8791c4                                         │
 │  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                                           │
 │  │ Owner: Immutable                                                                                                     │
-│  │ ObjectType: 0x2::coin::CoinMetadata<0x62537fc5da5602d6aa4d832b9a1207077b3267c49bfb8dac9fa9ee9e4ec3c57e::wbtc::WBTC>  │
-│  │ Version: 3                                                                                                           │
-│  │ Digest: EcuzFjHWWeTqn38dZxrzG2kQy9Zuzh8M5DFDrK4GC3kD                                                                 │
+│  │ ObjectType: 0x2::coin::CoinMetadata<0xc0d0e0ce8fd43db69eb4e2cb5861ea6eac5e26c663a4ad5448fdb9b7ccfb94b0::usdt::USDT>  │
+│  │ Version: 4                                                                                                           │
+│  │ Digest: 5ujxCQKtJsBtEw4j2NS1y5W6KcxKMCwdKpYBsp24YkLH                                                                 │
 │  └──                                                                                                                    │
-
+│  ┌──                                                                                                                    │
+│  │ ObjectID: 0x7c08e546f67a1f73ee80012aa6284478fcfea2f37407340b8d4d9e3e53e09c51                                         │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                                           │
+│  │ Owner: Account Address ( 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366 )                        │
+│  │ ObjectType: 0x2::package::UpgradeCap                                                                                 │
+│  │ Version: 4                                                                                                           │
+│  │ Digest: 3iNjS3eMs3q2YTFmURVvi3e5nDduRZ2y8jK2EAbx5ZkK                                                                 │
+│  └──                                                                                                                    │
+│ Mutated Objects:                                                                                                        │
+│  ┌──                                                                                                                    │
+│  │ ObjectID: 0x113097be235f27cde37ea6fec4355e23fd4de231d61083b42374be85192815ab                                         │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                                           │
+│  │ Owner: Account Address ( 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366 )                        │
+│  │ ObjectType: 0x2::coin::Coin<0x2::sui::SUI>                                                                           │
+│  │ Version: 4                                                                                                           │
+│  │ Digest: 69bZtfC6KWuRGnJ3G9PXd3qbpA6mouGTutaVCrA3PnCG                                                                 │
+│  └──                                                                                                                    │
 │ Published Objects:                                                                                                      │
 │  ┌──                                                                                                                    │
-│  │ PackageID: 0x62537fc5da5602d6aa4d832b9a1207077b3267c49bfb8dac9fa9ee9e4ec3c57e                                        │
+│  │ PackageID: 0xc0d0e0ce8fd43db69eb4e2cb5861ea6eac5e26c663a4ad5448fdb9b7ccfb94b0                                        │
 │  │ Version: 1                                                                                                           │
-│  │ Digest: AVJsvHkedSzYdxL52L7VbvMELyfBCHqtokrsDU5u6d4S                                                                 │
-│  │ Modules: deepbook, wbtc                                                                                              │
+│  │ Digest: ETWcANd79c2m9chFLPVtXhLZzB7HUQSfGiAu9ekCvaUo                                                                 │
+│  │ Modules: deepbook, usdt                                                                                              │
 │  └──                                                                                                                    │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 - **记录关键信息到环境变量**
 
 ```bash
-export PACKAGE_ID=0x62537fc5da5602d6aa4d832b9a1207077b3267c49bfb8dac9fa9ee9e4ec3c57e
-export WBTC_TREASURY_CAP_ID=0x249ffa3da2b2169bfb24a1eb6dba75198eb02b22be4ded8d70c4d68bff2a0eb9
+export PACKAGE_ID=0xc0d0e0ce8fd43db69eb4e2cb5861ea6eac5e26c663a4ad5448fdb9b7ccfb94b0
+export USDT_TREASURY_CAP_ID=0x152d8efeb8a0faac31206910f2ce3f16a41734c9c82cffb4c71ce9d8029ad770
 
 # 报价资产类型
-export QUOTE_COIN_TYPE=$PACKAGE_ID::wbtc::WBTC
+export QUOTE_COIN_TYPE=$PACKAGE_ID::usdt::USDT
 
 # 基础资产类型
 export BASE_COIN_TYPE=0x2::sui::SUI
@@ -1008,41 +1032,75 @@ export BASE_COIN_TYPE=0x2::sui::SUI
 -   **执行命令**
 
 ```bash
-export YASMINE_SUI_FEE_COIN_ID=0xffdcfffa2eb625c890d5571630d7f74844be5384f0079528995a1b647ef91c9d
+# 取用户1最后一个gasCoin作为创建流动性池的手续费
+export YASMINE_SUI_FEE_COIN_ID=`sui client gas --json | jq '.[-1].gasCoinId' -r`
+
 sui client call --package $PACKAGE_ID --module deepbook --function new_pool --type-args $BASE_COIN_TYPE $QUOTE_COIN_TYPE --args $YASMINE_SUI_FEE_COIN_ID --gas-budget 10000000000
 ```
 
 -   **关键日志**
 
 ```
-│ Created Objects:                                                                                  │   
-│  ┌──                                                                                              │   
-│  │ ObjectID: 0x8129d70e149d2a8e94c58232904bd43f99ff9dbe49ff0f8d078a0db6b11bfd59                   │   
-│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                     │   
-│  │ Owner: Account Address ( 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366 )  │
-│  │ ObjectType: 0xdee9::clob_v2::PoolOwnerCap                                                      │   
-│  │ Version: 4                                                                                     │   
-│  │ Digest: 33xMVeDCy3TdoGG3BfgzjYC2cYrG8tSPDx8ta1yGFhhf                                           │   
-│  └──                                                                                              │   
-│  ┌──                                                                                              │   
-│  │ ObjectID: 0xd3779782c4e6058839a6aeed790e664dafa842beb5e41345c786726e38e7f609                   │   
-│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                     │   
-│  │ Owner: Shared                                                                                  │   
-│  │ ObjectType: 0xdee9::clob_v2::Pool<0x2::sui::SUI, <PACKAGE_ID>::wbtc::WBTC>                     │   
-│  │ Version: 4                                                                                     │   
-│  │ Digest: 2WxcXKwUQ9t7rwHfwFvhTZ3DtnVMAzRqbXKPVPLqJtyS                                           │   
-│  └──                                                                                              │   
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Object Changes                                                                                           │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Created Objects:                                                                                         │
+│  ┌──                                                                                                     │
+│  │ ObjectID: 0x23c171bf58172ad1ce97967eb06dd635e389eba4cda3ff3eb76bd8ca9544878b                          │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                            │
+│  │ Owner: Account Address ( 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366 )         │
+│  │ ObjectType: 0xdee9::clob_v2::PoolOwnerCap                                                             │
+│  │ Version: 5                                                                                            │
+│  │ Digest: 5KPCMWwF5iNResZpJmMrJombNpfDQ9WkYDxHYxEuCR7W                                                  │
+│  └──                                                                                                     │
+│  ┌──                                                                                                     │
+│  │ ObjectID: 0xf09e31bde38e50e3f4c8ae24f2365aaadded3dbb018160b661fabb7f0e4cf87e                          │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                            │
+│  │ Owner: Shared                                                                                         │
+│  │ ObjectType: 0xdee9::clob_v2::Pool<0x2::sui::SUI, PACKAGE_ID::usdt::USDT>                              │
+│  │ Version: 5                                                                                            │
+│  │ Digest: FKqVU7LP6w6hkRPPk5jN9Wmupn3CtetvBfEckcG8rPE                                                   │
+│  └──                                                                                                     │
+│ Mutated Objects:                                                                                         │
+│  ┌──                                                                                                     │
+│  │ ObjectID: 0x113097be235f27cde37ea6fec4355e23fd4de231d61083b42374be85192815ab                          │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                            │
+│  │ Owner: Account Address ( 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366 )         │
+│  │ ObjectType: 0x2::coin::Coin<0x2::sui::SUI>                                                            │
+│  │ Version: 5                                                                                            │
+│  │ Digest: 2ivwac7frHvnEcBzvLLq1792KdpFriurirJsSZ2V7V4q                                                  │
+│  └──                                                                                                     │
+│  ┌──                                                                                                     │
+│  │ ObjectID: 0xfb083ce5f886cd552d516c78c45bca9e611e5cf3f4a178ed4c09fd96ea6d1557                          │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                            │
+│  │ Owner: Account Address ( 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366 )         │
+│  │ ObjectType: 0x2::coin::Coin<0x2::sui::SUI>                                                            │
+│  │ Version: 5                                                                                            │
+│  │ Digest: 7JEuVYPdqnyryPLj7bZjahyYpPffBjyketzU8Z1bNLDb                                                  │
+│  └──                                                                                                     │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 -   **抛出事件**
 
-![image-20240422231706073](assets/image-20240422231706073.png)
+![image-20240424184312512](assets/image-20240424184312512.png)
+
+**字段说明：**
+
+| 字段名 | 含义 | 取值 |
+| ------ | ---- | ---- |
+| **pool_id**       | 流动池对象ID | 0xf09e31bde38e50e3f4c8ae24f2365aaadded3dbb018160b661fabb7f0e4cf87e|
+| **base_asset**    | 基础资产 | 0x2::sui::SUI   						  |
+| **quote_asset**   | 报价资产 | <PACKAGE_ID>::usdt::USDT                                          |
+| **tick_size**     | 价格变动的最小粒度 | 1000000000                                                        |
+| **lot_size**      | 每笔交易的最小数量 | 1                                                                 |
+| **taker_fee_rate** | 买入者支付费率：0.25% | 2500000                                                           |
+| **maker_rebate_rate** | 卖出者盈利费率：0.15% | 1500000                                                           |
 
 -   **记录关键信息到环境变量**
 
 ```bash
-export POOL_ID=0xd3779782c4e6058839a6aeed790e664dafa842beb5e41345c786726e38e7f609
-export POOL_OWNER_CAP=0x8129d70e149d2a8e94c58232904bd43f99ff9dbe49ff0f8d078a0db6b11bfd59
+export POOL_ID=0xf09e31bde38e50e3f4c8ae24f2365aaadded3dbb018160b661fabb7f0e4cf87e
 ```
 
 ### 7.3 创建托管账户
@@ -1052,95 +1110,171 @@ export POOL_OWNER_CAP=0x8129d70e149d2a8e94c58232904bd43f99ff9dbe49ff0f8d078a0db6
 -   **执行命令**
 
 ```bash
-$ sui client switch --address yasmine
-$ sui client call --package $PACKAGE_ID  --module deepbook --function new_custodian_account  --gas-budget 10000000000
+sui client switch --address yasmine
+sui client call --package $PACKAGE_ID  --module deepbook --function new_custodian_account  --gas-budget 10000000000
 ```
 
 -   **关键日志**
 
 ```bash
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Object Changes                                                                                   │
+├──────────────────────────────────────────────────────────────────────────────────────────────────┤
 │ Created Objects:                                                                                 │
 │  ┌──                                                                                             │
-│  │ ObjectID: 0xf63669a4d1a7afcec4ae6ebc00a6f03e2df354e167b2d5c7737155d562396b8a                  │
+│  │ ObjectID: 0x17f9b0803e0e9ea528d994bde1ac35286e8e7b9e2e8dabbf8aeca1d961e7f506                  │
 │  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                    │
 │  │ Owner: Account Address ( 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366 ) │
 │  │ ObjectType: 0xdee9::custodian_v2::AccountCap                                                  │
-│  │ Version: 5                                                                                    │
-│  │ Digest: DQXpqv848yJVw5xphZk3TdzszGnfETwgWKMP8jcAfyyQ                                          │
+│  │ Version: 6                                                                                    │
+│  │ Digest: 2WhPzwi4dW9iWSrvoFRX8U1Le8B1mHGyVehbZPdmsTzw                                          │
 │  └──                                                                                             │
+│ Mutated Objects:                                                                                 │
+│  ┌──                                                                                             │
+│  │ ObjectID: 0x113097be235f27cde37ea6fec4355e23fd4de231d61083b42374be85192815ab                  │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                    │
+│  │ Owner: Account Address ( 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366 ) │
+│  │ ObjectType: 0x2::coin::Coin<0x2::sui::SUI>                                                    │
+│  │ Version: 6                                                                                    │
+│  │ Digest: 8WwBfhYrWgZ6xCeswnmzdG6QAkkyEvZUeHPFbDhaqR1B                                          │
+│  └──                                                                                             │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 -   **记录关键信息到环境变量**
 
 ```bash
-export YASMINE_ACCOUNT_CAP_ID=0xf63669a4d1a7afcec4ae6ebc00a6f03e2df354e167b2d5c7737155d562396b8a
+export YASMINE_ACCOUNT_CAP_ID=0x17f9b0803e0e9ea528d994bde1ac35286e8e7b9e2e8dabbf8aeca1d961e7f506
 ```
 
 -   **同样为用户2创建托管账户**
 
 ```bash
-$ sui client switch --address yoyo
+sui client switch --address yoyo
  
-$ sui client call --package $PACKAGE_ID  --module deepbook --function new_custodian_account  --gas-budget 10000000000
+sui client call --package $PACKAGE_ID  --module deepbook --function new_custodian_account  --gas-budget 10000000000
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Object Changes                                                                                   │
+├──────────────────────────────────────────────────────────────────────────────────────────────────┤
 │ Created Objects:                                                                                 │
 │  ┌──                                                                                             │
-│  │ ObjectID: 0xb27024d108af1d60e674d9bb555ed793caef0225d4870b7319b2d8c6d69db3ce                  │
+│  │ ObjectID: 0x0ad8b5a35eb99458dc03a0786b4cdd9ad099fa342d2c61ba8cebe9812c57e677                  │
 │  │ Sender: 0x9a5be5ddb2962cb7b6ee7a39ca261f30c13ce95fcd0f5150005174337d2e5701                    │
 │  │ Owner: Account Address ( 0x9a5be5ddb2962cb7b6ee7a39ca261f30c13ce95fcd0f5150005174337d2e5701 ) │
 │  │ ObjectType: 0xdee9::custodian_v2::AccountCap                                                  │
 │  │ Version: 3                                                                                    │
-│  │ Digest: BjLqHJYU8yFzD7Q3JBm4KQvespHHpLegaRcUq4ThM1Ax                                          │
+│  │ Digest: 7igQ3L5LukbsGGZY14JnxK7jeuDisVEdN9fS6vLxpFKE                                          │
 │  └──                                                                                             │
+│ Mutated Objects:                                                                                 │
+│  ┌──                                                                                             │
+│  │ ObjectID: 0x427debe85ee3e35af794c661b19ff781a9d3f8b5488b0274ad83747f4cbb7b8b                  │
+│  │ Sender: 0x9a5be5ddb2962cb7b6ee7a39ca261f30c13ce95fcd0f5150005174337d2e5701                    │
+│  │ Owner: Account Address ( 0x9a5be5ddb2962cb7b6ee7a39ca261f30c13ce95fcd0f5150005174337d2e5701 ) │
+│  │ ObjectType: 0x2::coin::Coin<0x2::sui::SUI>                                                    │
+│  │ Version: 3                                                                                    │
+│  │ Digest: A9vsmdCvXahWThf7tNAfmYZr8sqWhiMsDDBZkgkGw43a                                          │
+│  └──                                                                                             │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 
-export YOYO_ACCOUNT_CAP_ID=0xb27024d108af1d60e674d9bb555ed793caef0225d4870b7319b2d8c6d69db3ce
+export YOYO_ACCOUNT_CAP_ID=0x0ad8b5a35eb99458dc03a0786b4cdd9ad099fa342d2c61ba8cebe9812c57e677
 ```
 
-### 7.4 铸造WBTC
+### 7.4 铸造USDT
 
->   我们需要先铸造一些`WBTC`，以便我们可以存入到流动性池中。
+>   我们需要先铸造一些`USDT`，以便我们可以存入到流动性池中。
 >
 >   切换到合约部署者（帐号1），分别为两个帐号进行铸造
 
 -   **执行命令**
 
-```bash
-$ sui client call --function mint --module wbtc --package $PACKAGE_ID  --args $WBTC_TREASURY_CAP_ID "10000000000" $YASMINE --gas-budget 10000000
+>   因`USDT`代币精度是`6`，以下命令将为每个用户铸造`1000 USDT`
+>
+>   ![image-20240424185846662](assets/image-20240424185846662.png)
 
-$ sui client call --function mint --module wbtc --package $PACKAGE_ID  --args $WBTC_TREASURY_CAP_ID "10000000000" $YOYO --gas-budget 10000000
+```bash
+sui client call --function mint --module usdt --package $PACKAGE_ID  --args $USDT_TREASURY_CAP_ID 1000000000 $YASMINE --gas-budget 10000000
+
+sui client call --function mint --module usdt --package $PACKAGE_ID  --args $USDT_TREASURY_CAP_ID 1000000000 $YOYO --gas-budget 10000000
 ```
 
 -   **关键日志**
 
 ```bash
 # 帐号1
+╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Object Changes                                                                                                         │
+├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 │ Created Objects:                                                                                                       │
 │  ┌──                                                                                                                   │
-│  │ ObjectID: 0x8c77cf2d7edcc8a88ef6425fee4a1697e5bf279e6f1e6c4a51053f62ac0890c9                                        │
+│  │ ObjectID: 0x7ebc1adbf59194a80ca6ea9bc05e6cbe11f4a08c36a18e2d18bc1ebc6abc665a                                        │
 │  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                                          │
 │  │ Owner: Account Address ( 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366 )                       │
-│  │ ObjectType: 0x2::coin::Coin<0x62537fc5da5602d6aa4d832b9a1207077b3267c49bfb8dac9fa9ee9e4ec3c57e::wbtc::WBTC>         │
-│  │ Version: 6                                                                                                          │
-│  │ Digest: DXVEVq8c9EUxy2mFHMGptQtWtUsbUzriP9UJcksM6mu5                                                                │
+│  │ ObjectType: 0x2::coin::Coin<0xc0d0e0ce8fd43db69eb4e2cb5861ea6eac5e26c663a4ad5448fdb9b7ccfb94b0::usdt::USDT>         │
+│  │ Version: 7                                                                                                          │
+│  │ Digest: 4BnWLwkPjHSnRmDV4sbP5jfH2YufuF9U9jbBYGMCmzAj                                                                │
 │  └──                                                                                                                   │
+│ Mutated Objects:                                                                                                       │
+│  ┌──                                                                                                                   │
+│  │ ObjectID: 0x113097be235f27cde37ea6fec4355e23fd4de231d61083b42374be85192815ab                                        │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                                          │
+│  │ Owner: Account Address ( 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366 )                       │
+│  │ ObjectType: 0x2::coin::Coin<0x2::sui::SUI>                                                                          │
+│  │ Version: 7                                                                                                          │
+│  │ Digest: HuGWcNXdqkCgJAY5CzdDBtT7zZvWHi66CqduiFThrSn2                                                                │
+│  └──                                                                                                                   │
+│  ┌──                                                                                                                   │
+│  │ ObjectID: 0x152d8efeb8a0faac31206910f2ce3f16a41734c9c82cffb4c71ce9d8029ad770                                        │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                                          │
+│  │ Owner: Account Address ( 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366 )                       │
+│  │ ObjectType: 0x2::coin::TreasuryCap<0xc0d0e0ce8fd43db69eb4e2cb5861ea6eac5e26c663a4ad5448fdb9b7ccfb94b0::usdt::USDT>  │
+│  │ Version: 7                                                                                                          │
+│  │ Digest: 2mX3ZnSn3HZCQtkZchKy2KCM3DC3Rg19SDFBKPfaRemU                                                                │
+│  └──                                                                                                                   │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
 # 帐号2
+╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Object Changes                                                                                                         │
+├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 │ Created Objects:                                                                                                       │
 │  ┌──                                                                                                                   │
-│  │ ObjectID: 0x6dad061ce67422b4125ab86014248a22320414fa43c7fcd4575af02ac5b2eeaf                                        │
+│  │ ObjectID: 0x8c1023114ea2a57aefd57ea53f619bd8f8f226ddddb59c7a802e4cb9958fd735                                        │
 │  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                                          │
 │  │ Owner: Account Address ( 0x9a5be5ddb2962cb7b6ee7a39ca261f30c13ce95fcd0f5150005174337d2e5701 )                       │
-│  │ ObjectType: 0x2::coin::Coin<0x62537fc5da5602d6aa4d832b9a1207077b3267c49bfb8dac9fa9ee9e4ec3c57e::wbtc::WBTC>         │
-│  │ Version: 7                                                                                                          │
-│  │ Digest: HJV5Vjnw9aAL272Srf23gKmnQHgHxc4mKvzV76uFaRsb                                                                │
+│  │ ObjectType: 0x2::coin::Coin<0xc0d0e0ce8fd43db69eb4e2cb5861ea6eac5e26c663a4ad5448fdb9b7ccfb94b0::usdt::USDT>         │
+│  │ Version: 8                                                                                                          │
+│  │ Digest: 3Ju4vyWMm7M82QFRsbprgLQtQnBqZB2bkMnBy4esqaAK                                                                │
 │  └──                                                                                                                   │
+│ Mutated Objects:                                                                                                       │
+│  ┌──                                                                                                                   │
+│  │ ObjectID: 0x113097be235f27cde37ea6fec4355e23fd4de231d61083b42374be85192815ab                                        │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                                          │
+│  │ Owner: Account Address ( 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366 )                       │
+│  │ ObjectType: 0x2::coin::Coin<0x2::sui::SUI>                                                                          │
+│  │ Version: 8                                                                                                          │
+│  │ Digest: AFs5ybJtDFAgi5kZ6DxmzQiem9tmv3u2wB1PVhUDYQaH                                                                │
+│  └──                                                                                                                   │
+│  ┌──                                                                                                                   │
+│  │ ObjectID: 0x152d8efeb8a0faac31206910f2ce3f16a41734c9c82cffb4c71ce9d8029ad770                                        │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                                          │
+│  │ Owner: Account Address ( 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366 )                       │
+│  │ ObjectType: 0x2::coin::TreasuryCap<0xc0d0e0ce8fd43db69eb4e2cb5861ea6eac5e26c663a4ad5448fdb9b7ccfb94b0::usdt::USDT>  │
+│  │ Version: 8                                                                                                          │
+│  │ Digest: J2nKgg7iTnhGMyKiAaNf3FUYSnztykKD6cBYN3dMXnLz                                                                │
+│  └──                                                                                                                   │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
+
+-   **查看`USDT`的总发行量**
+
+![image-20240424190040656](assets/image-20240424190040656.png)
 
 -   **记录关键信息到环境变量**
 
 ```bash
-export YASMINE_WBTC_OBJECT_ID=0x8c77cf2d7edcc8a88ef6425fee4a1697e5bf279e6f1e6c4a51053f62ac0890c9
+export YASMINE_USDT_OBJECT_ID=0x7ebc1adbf59194a80ca6ea9bc05e6cbe11f4a08c36a18e2d18bc1ebc6abc665a
 
-export YOYO_WBTC_OBJECT_ID=0x6dad061ce67422b4125ab86014248a22320414fa43c7fcd4575af02ac5b2eeaf
+export YOYO_USDT_OBJECT_ID=0x8c1023114ea2a57aefd57ea53f619bd8f8f226ddddb59c7a802e4cb9958fd735
 ```
 
 ### 7.5 存入资产
@@ -1151,55 +1285,117 @@ export YOYO_WBTC_OBJECT_ID=0x6dad061ce67422b4125ab86014248a22320414fa43c7fcd4575
 
 -   **执行命令**
 
-```bash
-$ export YASMINE_BASE_COIN_ID=0xffdcfffa2eb625c890d5571630d7f74844be5384f0079528995a1b647ef91c9d
+>   执行该命令，将存入`100 SUI`到账户1的托管账号中
 
-$ sui client call --package $PACKAGE_ID  --module deepbook --function make_base_deposit --args $POOL_ID $YASMINE_BASE_COIN_ID $YASMINE_ACCOUNT_CAP_ID --type-args $BASE_COIN_TYPE $QUOTE_COIN_TYPE --gas-budget 10000000000
+```bash
+export YASMINE_BASE_COIN_ID=`sui client gas --json | jq '.[-1].gasCoinId' -r`
+
+sui client call --package $PACKAGE_ID  --module deepbook --function make_base_deposit --args $POOL_ID $YASMINE_BASE_COIN_ID $YASMINE_ACCOUNT_CAP_ID --type-args $BASE_COIN_TYPE $QUOTE_COIN_TYPE --gas-budget 10000000000
 ```
 
 -   **关键日志**
 
 ```
-│ Created Objects:                                                                                   │   
-│  ┌──                                                                                               │   
-│  │ ObjectID: 0xd4d90d0fd00de7ad09fc8f385e800b48b57967726652596f3314cf3b1ba4e710                    │   
-│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                      │   
-│  │ Owner: Object ID: ( 0xdfd29c838491e289ec4dcbfe47e061a68d51d5a70620c2e710b4df72fd344bd2 )        │   
-│  │ ObjectType: 0x2::dynamic_field::Field<address, 0xdee9::custodian_v2::Account<0x2::sui::SUI>>    │   
-│  │ Version: 8                                                                                      │   
-│  │ Digest: HkU7mAjn5bvTnCKf5JM46y9xQAjcEfbqBJZUPbFMvgPd                                            │   
-│  └──                                                                                               │ 
+╭───────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Object Changes                                                                                    │
+├───────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Created Objects:                                                                                  │
+│  ┌──                                                                                              │
+│  │ ObjectID: 0x0b7ef9a9f2f3d47936f289c4d13f6016331f5b31143983660f43e2f781e648ad                   │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                     │
+│  │ Owner: Object ID: ( 0x63faf764758ca13d2eb7fe6a4a7f2a9b4cc3601870c56c8415d02f10a2f1eca2 )       │
+│  │ ObjectType: 0x2::dynamic_field::Field<address, 0xdee9::custodian_v2::Account<0x2::sui::SUI>>   │
+│  │ Version: 9                                                                                     │
+│  │ Digest: DEdgGp8Ds7mr79yBS9T2Hjzutc376NQKt3uHxmtGUJ6x                                           │
+│  └──                                                                                              │
+│ Mutated Objects:                                                                                  │
+│  ┌──                                                                                              │
+│  │ ObjectID: 0x113097be235f27cde37ea6fec4355e23fd4de231d61083b42374be85192815ab                   │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                     │
+│  │ Owner: Account Address ( 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366 )  │
+│  │ ObjectType: 0x2::coin::Coin<0x2::sui::SUI>                                                     │
+│  │ Version: 9                                                                                     │
+│  │ Digest: 9QCeFiq9eY66iV7RtyUvxwMbFSpW2QcCKV7xs2bZovVF                                           │
+│  └──                                                                                              │
+│  ┌──                                                                                              │
+│  │ ObjectID: 0x17f9b0803e0e9ea528d994bde1ac35286e8e7b9e2e8dabbf8aeca1d961e7f506                   │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                     │
+│  │ Owner: Account Address ( 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366 )  │
+│  │ ObjectType: 0xdee9::custodian_v2::AccountCap                                                   │
+│  │ Version: 9                                                                                     │
+│  │ Digest: CQ2usuYExFWdz6nwDXBU7mHRx4VdzKfPwLQ3STQ29Xjp                                           │
+│  └──                                                                                              │
+│  ┌──                                                                                              │
+│  │ ObjectID: 0xf09e31bde38e50e3f4c8ae24f2365aaadded3dbb018160b661fabb7f0e4cf87e                   │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                     │
+│  │ Owner: Shared                                                                                  │
+│  │ ObjectType: 0xdee9::clob_v2::Pool<0x2::sui::SUI, PACKAGE_ID::usdt::USDT>                       │
+│  │ Version: 9                                                                                     │
+│  │ Digest: 5n886pmBszk4duXgHxwvahatGXtTJNQ4itZEch6z3CcE                                           │
+│  └──                                                                                              │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 -   **抛出事件**
 
-![image-20240422233457518](assets/image-20240422233457518.png)
+![image-20240424190540680](assets/image-20240424190540680.png)
 
 #### （2）存入报价资产
 
 -   **执行命令**
 
+>   执行以下命令，将`1000 USDT`作为报价资产存入
+
 ```bash
-$ sui client call --package $PACKAGE_ID  --module deepbook --function make_quote_deposit --args $POOL_ID $YASMINE_WBTC_OBJECT_ID $YASMINE_ACCOUNT_CAP_ID --type-args $BASE_COIN_TYPE $QUOTE_COIN_TYPE --gas-budget 10000000000
+$ sui client call --package $PACKAGE_ID  --module deepbook --function make_quote_deposit --args $POOL_ID $YASMINE_USDT_OBJECT_ID $YASMINE_ACCOUNT_CAP_ID --type-args $BASE_COIN_TYPE $QUOTE_COIN_TYPE --gas-budget 10000000000
 ```
 
 -   **关键日志**
 
 ```
-│ Created Objects:                                                                                          │  
-│  ┌──                                                                                                      │  
-│  │ ObjectID: 0x3507725f8c9c4908a20f003842c7cb4fef5f5407bd14e2b3100ab9cb6ff4b2d5                           │  
-│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                             │
-│  │ Owner: Object ID: ( 0xd17a491f7a2c29af7abe1ced81a57d301355a99712b1d34bf13715327729e3df )               │
-│  │ ObjectType: 0x2::dynamic_field::Field<address, 0xdee9::custodian_v2::Account<PACKAGE_ID::wbtc::WBTC>>  │
-│  │ Version: 10                                                                                            │  
-│  │ Digest: FmQn9EHUzzewbrQ7Et18wpQk2HatXU2VfcyABsDFeXpq                                                   │  
-│  └──                                                                                                      │  
+╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Object Changes                                                                                              │
+├─────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Created Objects:                                                                                            │
+│  ┌──                                                                                                        │
+│  │ ObjectID: 0x790b91c4beecd1cee567066db18e4f23accfce62e92974216b7befcb1455c0a1                             │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                               │
+│  │ Owner: Object ID: ( 0x3fa26ec7ba7733f81398bd85527b9e2f6397aad266eb49119456e3ff77e0fdcb )                 │
+│  │ ObjectType: 0x2::dynamic_field::Field<address, 0xdee9::custodian_v2::Account<PACKAGE_ID::usdt::USDT>>    │
+│  │ Version: 10                                                                                              │
+│  │ Digest: 2cJN2dv5PNZKZ44KiepN174mAwkDv8suNeZV7sQAVs17                                                     │
+│  └──                                                                                                        │
+│ Mutated Objects:                                                                                            │
+│  ┌──                                                                                                        │
+│  │ ObjectID: 0x113097be235f27cde37ea6fec4355e23fd4de231d61083b42374be85192815ab                             │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                               │
+│  │ Owner: Account Address ( 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366 )            │
+│  │ ObjectType: 0x2::coin::Coin<0x2::sui::SUI>                                                               │
+│  │ Version: 10                                                                                              │
+│  │ Digest: 2NG7iwzmXGCTRb6VKDLLSfifHrgB7xPoeey4V7bG1DWT                                                     │
+│  └──                                                                                                        │
+│  ┌──                                                                                                        │
+│  │ ObjectID: 0x17f9b0803e0e9ea528d994bde1ac35286e8e7b9e2e8dabbf8aeca1d961e7f506                             │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                               │
+│  │ Owner: Account Address ( 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366 )            │
+│  │ ObjectType: 0xdee9::custodian_v2::AccountCap                                                             │
+│  │ Version: 10                                                                                              │
+│  │ Digest: HXnihRHkrVicWoaW52XXaHzM3TmQL2f62EBykBbJqWtz                                                     │
+│  └──                                                                                                        │
+│  ┌──                                                                                                        │
+│  │ ObjectID: 0xf09e31bde38e50e3f4c8ae24f2365aaadded3dbb018160b661fabb7f0e4cf87e                             │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                               │
+│  │ Owner: Shared                                                                                            │
+│  │ ObjectType: 0xdee9::clob_v2::Pool<0x2::sui::SUI, PACKAGE_ID::usdt::USDT>                                 │
+│  │ Version: 10                                                                                              │
+│  │ Digest: FDBSTkwwuaLcHFkoMgdjo2FFso6MCzyCUhVXg4TRUkEU                                                     │
+│  └──                                                                                                        │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 -   **抛出事件**
 
-![image-20240422234128500](assets/image-20240422234128500.png)
+![image-20240424191028604](assets/image-20240424191028604.png)
 
 ### 7.6 挂限价单
 
@@ -1207,57 +1403,104 @@ $ sui client call --package $PACKAGE_ID  --module deepbook --function make_quote
 
 - **执行命令**
 
-> 注：42是订单ID，可以为任意数字
+> 注：11是链下订单ID，可以为任意数字
+>
+> 执行该命令，将下限价单，欲使用标价资产`USDT`购买200枚基础资产`SUI`，每枚的单价是：5000000000 ==？？==
 
 ```bash
 # 获取2小时后的毫秒级别时间戳
 export EXPIRE_TIMESTAMP=`date -d "2 hours" +%s%3N`
 export CLOCK_OBJECT_ID=0x6
 
-$ sui client call --package $PACKAGE_ID  --module deepbook --function place_limit_order --args $POOL_ID 42 5000000000 200 0 true $EXPIRE_TIMESTAMP 0 $CLOCK_OBJECT_ID $YASMINE_ACCOUNT_CAP_ID --type-args $BASE_COIN_TYPE $QUOTE_COIN_TYPE --gas-budget 10000000000
+$ sui client call --package $PACKAGE_ID --module deepbook --function place_limit_order --args $POOL_ID 11 5000000000 200 0 true $EXPIRE_TIMESTAMP 0 $CLOCK_OBJECT_ID $YASMINE_ACCOUNT_CAP_ID --type-args $BASE_COIN_TYPE $QUOTE_COIN_TYPE --gas-budget 10000000000
 ```
 
 - **关键日志**
 
 ```bash
-│ Created Objects:                                                                                         │   
-│  ┌──                                                                                                     │   
-│  │ ObjectID: 0x53fad535193de914743351ab634ad14c889e363070313e06d9949827f993e426                          │   
-│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                            │   
-│  │ Owner: Object ID: ( 0x762018d21f8620646083f7f6a554241426dbf236e43441df8b35e02a623901de )              │   
-│  │ ObjectType: 0x2::dynamic_field::Field<address, 0x2::linked_table::LinkedTable<u64, u64>>              │   
-│  │ Version: 5701                                                                                         │   
-│  │ Digest: HkkweKZ5xjeP2sodBCS1cKsgoMBg1ML8pKJoC6AS1UfJ                                                  │   
-│  └──                                                                                                     │   
-│  ┌──                                                                                                     │   
-│  │ ObjectID: 0x8453a0e6d60822d3f0c2598467196adbf4d55ba13fac26a019d2fbf42b0b6376                          │   
-│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                            │   
-│  │ Owner: Object ID: ( 0xf4d87d2cb7c951dbd235949d908e47271347d6c159bdbdd4cd4cd0b5143e7a57 )              │   
-│  │ ObjectType: 0x2::dynamic_field::Field<u64, 0xdee9::critbit::Leaf<0xdee9::clob_v2::TickLevel>>         │   
-│  │ Version: 5701                                                                                         │   
-│  │ Digest: 7kD2GVaaCKaSCgji1BGditpCXUHJ91T9cV4K2WBZFcrP                                                  │   
-│  └──                                                                                                     │   
-│  ┌──                                                                                                     │   
-│  │ ObjectID: 0xd84d03e8bfe97a1e86843fb036b1f5529bed0315e295f8a0dd60777b3f4f6279                          │   
-│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                            │   
-│  │ Owner: Object ID: ( 0x16ae6a802f7207699611e611df5db701ddceabd0c553e4a03c822581283fea94 )              │   
-│  │ ObjectType: 0x2::dynamic_field::Field<u64, 0x2::linked_table::Node<u64, u64>>                         │   
-│  │ Version: 5701                                                                                         │   
-│  │ Digest: 297k98VY5i3G1kUUEqJ2pfMmiHQAwqzqUpN5M7XL9Mgz                                                  │   
-│  └──                                                                                                     │   
-│  ┌──                                                                                                     │   
-│  │ ObjectID: 0xe89e36022d209bbf612d8f42cd5f28a7a77a5534830871980f811ad2d7c26507                          │   
-│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                            │   
-│  │ Owner: Object ID: ( 0x1db3cf070eed73dbe3acbcefb347140a0e98e285b5055b57e1a4be1354ae7d82 )              │   
-│  │ ObjectType: 0x2::dynamic_field::Field<u64, 0x2::linked_table::Node<u64, 0xdee9::clob_v2::Order>>      │   
-│  │ Version: 5701                                                                                         │   
-│  │ Digest: FTRG2viMk6fmRomvWS8MDBWyyBJxh6bDa6WP4zv2Q4WN                                                  │   
-│  └──                                                                                                     │  
+╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Object Changes                                                                                                    │
+├───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Created Objects:                                                                                                  │
+│  ┌──                                                                                                              │
+│  │ ObjectID: 0x50a912307eb172855393e84723d18cdc2ca2bb561a11337d08740745270a7b13                                   │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                                     │
+│  │ Owner: Object ID: ( 0x72cabc457b8cb0064d7caf0d76f0ddebc4fc84ff7e526202a710d1f959a92d96 )                       │
+│  │ ObjectType: 0x2::dynamic_field::Field<u64, 0x2::linked_table::Node<u64, 0xdee9::clob_v2::Order>>               │
+│  │ Version: 7160                                                                                                  │
+│  │ Digest: CCTLJDmCFzdg5kNyxjgdo8ZzuwqiRr5sEis4XEu9CEqH                                                           │
+│  └──                                                                                                              │
+│  ┌──                                                                                                              │
+│  │ ObjectID: 0x5d8ba6c5a824a91bf4c0c2fd9194b4551f805de12c8d246e2bddf02136cdfd63                                   │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                                     │
+│  │ Owner: Object ID: ( 0x8fdd6bbc54bab7732b247d31cb585b1e3a74f16afd3e3d734c26cb3282e71ddb )                       │
+│  │ ObjectType: 0x2::dynamic_field::Field<u64, 0x2::linked_table::Node<u64, u64>>                                  │
+│  │ Version: 7160                                                                                                  │
+│  │ Digest: BFn3Fw6kzN1J5ZkPpmrDa7HNhVpm5R9BvCZHCxeN75wC                                                           │
+│  └──                                                                                                              │
+│  ┌──                                                                                                              │
+│  │ ObjectID: 0xa187b3996b914083bac3db6d40a27f2f4f427d4cfd217487d4d220b45d39e3df                                   │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                                     │
+│  │ Owner: Object ID: ( 0xaeed95142ed44f22bbc6b9139b52ae3250aafabf41ea843ca3555b278d7d79dd )                       │
+│  │ ObjectType: 0x2::dynamic_field::Field<address, 0x2::linked_table::LinkedTable<u64, u64>>                       │
+│  │ Version: 7160                                                                                                  │
+│  │ Digest: 7bZFr8mAPTy28zD7RpVBVrn43QqNmG15kaB5BJvqEvqz                                                           │
+│  └──                                                                                                              │
+│  ┌──                                                                                                              │
+│  │ ObjectID: 0xad13f560da3ab5b9062239227d359eb9d9a61f633b281cb85094508f46bfc339                                   │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                                     │
+│  │ Owner: Object ID: ( 0x20f438c446cc6759fb221e6e0ab91a6ede54db4d15969edafa6ac8d5df1e4dd0 )                       │
+│  │ ObjectType: 0x2::dynamic_field::Field<u64, 0xdee9::critbit::Leaf<0xdee9::clob_v2::TickLevel>>                  │
+│  │ Version: 7160                                                                                                  │
+│  │ Digest: 8wGPJr5yKRHehhsKt8sC2JjDYP35Sjk46yDaeFDGSn2d                                                           │
+│  └──                                                                                                              │
+│ Mutated Objects:                                                                                                  │
+│  ┌──                                                                                                              │
+│  │ ObjectID: 0x0b7ef9a9f2f3d47936f289c4d13f6016331f5b31143983660f43e2f781e648ad                                   │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                                     │
+│  │ Owner: Object ID: ( 0x63faf764758ca13d2eb7fe6a4a7f2a9b4cc3601870c56c8415d02f10a2f1eca2 )                       │
+│  │ ObjectType: 0x2::dynamic_field::Field<address, 0xdee9::custodian_v2::Account<0x2::sui::SUI>>                   │
+│  │ Version: 7160                                                                                                  │
+│  │ Digest: EuWUKQwdbUMNLjHUeRgbmSto7ZBz6obd812zBt9veqhw                                                           │
+│  └──                                                                                                              │
+│  ┌──                                                                                                              │
+│  │ ObjectID: 0x113097be235f27cde37ea6fec4355e23fd4de231d61083b42374be85192815ab                                   │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                                     │
+│  │ Owner: Account Address ( 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366 )                  │
+│  │ ObjectType: 0x2::coin::Coin<0x2::sui::SUI>                                                                     │
+│  │ Version: 7160                                                                                                  │
+│  │ Digest: FxVV4zrMksPUDqjuYS2MakTRbcajrSGc4nVrnwN1WoV7                                                           │
+│  └──                                                                                                              │
+│  ┌──                                                                                                              │
+│  │ ObjectID: 0x17f9b0803e0e9ea528d994bde1ac35286e8e7b9e2e8dabbf8aeca1d961e7f506                                   │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                                     │
+│  │ Owner: Account Address ( 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366 )                  │
+│  │ ObjectType: 0xdee9::custodian_v2::AccountCap                                                                   │
+│  │ Version: 7160                                                                                                  │
+│  │ Digest: 5qQ6ik413QonCtTSe1k17RGJzZZfz3RP1wGsqE71g5qJ                                                           │
+│  └──                                                                                                              │
+│  ┌──                                                                                                              │
+│  │ ObjectID: 0x790b91c4beecd1cee567066db18e4f23accfce62e92974216b7befcb1455c0a1                                   │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                                     │
+│  │ Owner: Object ID: ( 0x3fa26ec7ba7733f81398bd85527b9e2f6397aad266eb49119456e3ff77e0fdcb )                       │
+│  │ ObjectType: 0x2::dynamic_field::Field<address, 0xdee9::custodian_v2::Account<PACKAGE_ID::usdt::USDT>>          │
+│  │ Version: 7160                                                                                                  │
+│  │ Digest: 55krB6JyZZyhBpxumCqapyM7gp2DAJYAdUMQotz9U9mc                                                           │
+│  └──                                                                                                              │
+│  ┌──                                                                                                              │
+│  │ ObjectID: 0xf09e31bde38e50e3f4c8ae24f2365aaadded3dbb018160b661fabb7f0e4cf87e                                   │
+│  │ Sender: 0x74617c7691c3795e1cc30ee32472e480ca967ea3090d973c31dda4803b6ca366                                     │
+│  │ Owner: Shared                                                                                                  │
+│  │ ObjectType: 0xdee9::clob_v2::Pool<0x2::sui::SUI, PACKAGE_ID::usdt::USDT>                                       │
+│  │ Version: 7160                                                                                                  │
+│  │ Digest: 8M71ms6uuwXfj2hgKUvtB5AjaMYaBGSYDbJBc79qnvVu                                                           │
+│  └──                                                                                                              │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 - **抛出事件**
 
-![image-20240422235943605](assets/image-20240422235943605.png)
+![image-20240424194608661](assets/image-20240424194608661.png)
 
 #### （2）挂限价单2
 
@@ -1412,7 +1655,7 @@ $ sui client call --package $PACKAGE_ID  --module deepbook --function place_base
 │  │ ObjectID: 0x9d4add32acc7e32d8d5bffab79a7b6286c009d94dd1a810bc755ac5a576e699a                                  │   
 │  │ Sender: 0x9a5be5ddb2962cb7b6ee7a39ca261f30c13ce95fcd0f5150005174337d2e5701                                    │   
 │  │ Owner: Account Address ( 0x9a5be5ddb2962cb7b6ee7a39ca261f30c13ce95fcd0f5150005174337d2e5701 )                 │   
-│  │ ObjectType: 0x2::coin::Coin<0x62537fc5da5602d6aa4d832b9a1207077b3267c49bfb8dac9fa9ee9e4ec3c57e::wbtc::WBTC>   │   
+│  │ ObjectType: 0x2::coin::Coin<0x62537fc5da5602d6aa4d832b9a1207077b3267c49bfb8dac9fa9ee9e4ec3c57e::usdt::USDT>   │   
 │  │ Version: 7462                                                                                                 │   
 │  │ Digest: 5b5GXmtHXbNskH1yxYLUeNHgd3P62YALB1vN8ArCRPLA                                                          │   
 │  └──                                                                                                             │ 
@@ -1426,10 +1669,10 @@ $ sui client call --package $PACKAGE_ID  --module deepbook --function place_base
 
 - **执行命令**
 
-> 依然是在账户2执行资产交换命令，使用报价资产（`WBTC`）兑换基础资产（`SUI`）
+> 依然是在账户2执行资产交换命令，使用报价资产（`USDT`）兑换基础资产（`SUI`）
 
 ```bash
-$ sui client call --package $PACKAGE_ID  --module deepbook --function swap_exact_quote_for_base  --args $POOL_ID  $YOYO_ACCOUNT_CAP_ID $YOYO_WBTC_OBJECT_ID 42 300000 $CLOCK_OBJECT_ID --type-args $BASE_COIN_TYPE $QUOTE_COIN_TYPE --gas-budget 10000000000
+$ sui client call --package $PACKAGE_ID  --module deepbook --function swap_exact_quote_for_base  --args $POOL_ID  $YOYO_ACCOUNT_CAP_ID $YOYO_USDT_OBJECT_ID 42 300000 $CLOCK_OBJECT_ID --type-args $BASE_COIN_TYPE $QUOTE_COIN_TYPE --gas-budget 10000000000
 ```
 
 - **关键日志**
@@ -1440,7 +1683,7 @@ $ sui client call --package $PACKAGE_ID  --module deepbook --function swap_exact
 │  │ ObjectID: 0x02e78b21725adc7fbd40587c6b19d4e6c54b0650526496529bbf5ac7e548a603                               │   
 │  │ Sender: 0x9a5be5ddb2962cb7b6ee7a39ca261f30c13ce95fcd0f5150005174337d2e5701                                 │   
 │  │ Owner: Account Address ( 0x9a5be5ddb2962cb7b6ee7a39ca261f30c13ce95fcd0f5150005174337d2e5701 )              │   
-│  │ ObjectType: 0x2::coin::Coin<0x62537fc5da5602d6aa4d832b9a1207077b3267c49bfb8dac9fa9ee9e4ec3c57e::wbtc::WBTC>│
+│  │ ObjectType: 0x2::coin::Coin<0x62537fc5da5602d6aa4d832b9a1207077b3267c49bfb8dac9fa9ee9e4ec3c57e::usdt::USDT>│
 │  │ Version: 9204                                                                                              │   
 │  │ Digest: 9PmYbueNBN777uGQh4717bL4f23w47cJaaqx9HsZoUug                                                       │   
 │  └──                                                                                                          │
