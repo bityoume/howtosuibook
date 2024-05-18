@@ -1,4 +1,4 @@
-# SUI Move常用命令——网络交互命令（client）
+# SUI CLI常用命令解析1——Client
 
 *rzexin 2024.04.06*
 

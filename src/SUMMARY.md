@@ -1,9 +1,18 @@
+<!--
+ * @Author: jasonruan
+ * @version: v1.0.0
+ * @Date: 2024-04-22 19:48:03
+ * @Description: 
+ * @LastEditors: jasonruan
+ * @LastEditTime: 2024-05-18 11:36:48
+-->
 # Summary
 
 # SUI Move开发必知必会
 
 - [基础篇]()
-    - [SUI Move常用命令——网络交互命令（client）](./2024_04_06_sui_move_common_commands_1.md)
+    - [SUI CLI常用命令解析1——Client](./2024_04_06_how_to_use_sui_cli_1_client.md)
+    - [SUI CLI常用命令解析2——Client PTB](./2024_05_18_how_to_use_sui_cli_2_client_ptb.md)
 - [语法篇]()
     - [SUI Move 2024迁移指南及新语法实践](./2024_04_04_sui_move_how_to_migrate_to_move_2024.md)
 - [技巧篇]()
