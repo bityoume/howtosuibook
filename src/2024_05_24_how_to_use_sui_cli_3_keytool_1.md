@@ -1,14 +1,16 @@
-# SUI CLI最全命令详解3——Keytool基础命令
+# SUI CLI最全命令详解3——Keytool（上）@SUI Move开发必知必会
 
 *rzexin 2024.05.25*
 
 ## 1 前言
 
-`SUI`的命令行工具（`CLI`）`Keytool`提供了一些列的命令，用于管理和生成地址以及处理私钥、签名或 `zkLogin` 等功能。
+`SUI`的命令行工具（`CLI`）的`keytool`命令提供了一些列的子命令，用于生成私钥、管理地址、签名验签、多签及`zkLogin`相关功能。
 
-## 2 命令清单
+## 2 命令分类
 
-通过`-h`获取`sui keytool`所有命令参数：
+以下是本文使用的`SUI`版本及`keytool`的命令清单。
+
+### 2.1 命令清单
 
 ```bash
 $ sui --version
@@ -65,6 +67,31 @@ Commands:
                                                e.g. sui keytool zk-login-insecure-sign-personal-message --data "hello" --max-epoch 5
   help                                     Print this message or the help of the given subcommand(s)
 ```
+
+### 2.2 命令分类
+
+以上命令，初步分为以下4类，上篇将介绍前两类，下篇将介绍后两类。
+
+-   **密钥对类**
+    -   `generate`
+    -   `show`
+    -   `unpack`
+    -   `convert`
+    -   `import`
+    -   `export`
+    -   `list`
+    -   `update-alias`
+    -   `load-keypair`
+-   **单签类**
+    -   `sign`
+    -   `decode-or-verify-tx`
+-   **多签类**
+    -   `multi-sig-address`
+    -   `multi-sig-combine-partial-sig`
+-   **zkLogin类**
+    -   `zk-login-enter-token`
+    -   `zk-login-sign-and-execute-tx`
+    -   `zk-login-sig-verify`
 
 ## 3 密钥对类
 
@@ -168,7 +195,42 @@ $ sui keytool show ./0x0ab645b6d1c536534a6a2cf4616390a8f4922b0f8b127e494a7eb9fdd
 ╰─────────────────┴──────────────────────────────────────────────────────────────────────╯
 ```
 
-### 3.3 `convert`：密钥格式转换
+### 3.3 `unpack`：解码密钥
+
+#### （1）说明
+
+该命令跟`show`命令输出内容一致，只不过`show`是查看密钥文件，而`unpack`是直接解析密钥。
+
+```
+This takes [enum SuiKeyPair] of Base64 encoded of 33-byte `flag || privkey`). It outputs the keypair into a file at the current directory where the address is the filename, and prints out its Sui address, Base64 encoded public key, the key scheme, and the key scheme flag
+```
+
+#### （2）用法
+
+```bash
+Usage: sui keytool unpack [OPTIONS] <KEYPAIR>
+
+Arguments:
+  <KEYPAIR>  
+```
+
+#### （3）使用
+
+>   内容跟`show`命令输出完全一致。
+
+```bash
+$ sui keytool unpack AEXleFEKuJrNh9E3kpvwLqdsfeQfuliUQQ61cvJVfq4N
+╭─────────────────┬──────────────────────────────────────────────────────────────────────╮
+│ alias           │                                                                      │
+│ suiAddress      │  0x0ab645b6d1c536534a6a2cf4616390a8f4922b0f8b127e494a7eb9fdde70acc4  │
+│ publicBase64Key │  AGwzSkAPgy3Pkgl+ZFVZWfdFQz9COw46z4RX2WKCRY4a                        │
+│ keyScheme       │  ed25519                                                             │
+│ flag            │  0                                                                   │
+│ peerId          │  6c334a400f832dcf92097e64555959f745433f423b0e3acf8457d96282458e1a    │
+╰─────────────────┴──────────────────────────────────────────────────────────────────────╯
+```
+
+### 3.4 `convert`：密钥格式转换
 
 #### （1）说明
 
@@ -200,7 +262,7 @@ $ sui keytool  convert AEXleFEKuJrNh9E3kpvwLqdsfeQfuliUQQ61cvJVfq4N
 ╰────────────────┴──────────────────────────────────────────────────────────────────────────╯
 ```
 
-### 3.4 `import`：导入私钥到`SUI CLI Keystore`
+### 3.5 `import`：导入私钥到`SUI CLI Keystore`
 
 #### （1）说明
 
@@ -276,7 +338,7 @@ $ sui keytool list
 ╰────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
-### 3.5 `export`：导出私钥
+### 3.6 `export`：导出私钥
 
 #### （1）说明
 
@@ -331,7 +393,7 @@ $ sui keytool export --key-identity 0x0ab645b6d1c536534a6a2cf4616390a8f4922b0f8b
 ╰────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
-### 3.6 `list`：列出本地`Keystore`所有私钥对应的地址及公钥等信息
+### 3.7 `list`：列出本地`Keystore`所有私钥对应的地址及公钥等信息
 
 #### （1）说明
 
@@ -366,7 +428,7 @@ $ sui keytool list
 ╰────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
-### 3.7 `update-alias`：更新别名
+### 3.8 `update-alias`：更新别名
 
 #### （1）说明
 
@@ -426,7 +488,7 @@ $ sui keytool list
 ╰────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
-### 3.8 `load-keypair`：加载多种类型的密钥对
+### 3.9 `load-keypair`：加载多种类型的密钥对
 
 #### （1）说明
 
@@ -459,7 +521,7 @@ $ sui keytool  load-keypair  ~/0x0ab645b6d1c536534a6a2cf4616390a8f4922b0f8b127e4
 ╰────────────────┴────────────────────────────────────────────────╯
 ```
 
-## 4 签名验签类
+## 4 单签类
 
 ### 4.1 `sign`：交易签名
 
