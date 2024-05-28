@@ -1,4 +1,4 @@
-# SUI CLI最全命令详解3——Keytool（上）@SUI Move开发必知必会
+# SUI CLI最全命令详解3——Keytool之密钥对类 @SUI Move开发必知必会
 
 *rzexin 2024.05.25*
 
@@ -70,7 +70,7 @@ Commands:
 
 ### 2.2 命令分类
 
-以上命令，初步分为以下4类，上篇将介绍前两类，下篇将介绍后两类。
+以上命令，初步分为以下4类，将逐一进行介绍。
 
 -   **密钥对类**
     -   `generate`
@@ -88,6 +88,7 @@ Commands:
 -   **多签类**
     -   `multi-sig-address`
     -   `multi-sig-combine-partial-sig`
+    -   `decode-multi-sig`
 -   **zkLogin类**
     -   `zk-login-enter-token`
     -   `zk-login-sign-and-execute-tx`
@@ -521,111 +522,7 @@ $ sui keytool  load-keypair  ~/0x0ab645b6d1c536534a6a2cf4616390a8f4922b0f8b127e4
 ╰────────────────┴────────────────────────────────────────────────╯
 ```
 
-## 4 单签类
-
-### 4.1 `sign`：交易签名
-
-#### （1）说明
-
-该命令会使用`Keystone`中地址或别名对应的私钥进行交易签名。
-
-```
-Create signature using the private key for for the given address (or its alias) in sui keystore. 
-
-Any signature commits to a [struct IntentMessage] consisting of the Base64 encoded of the BCS serialized transaction bytes itself and its intent. If intent is absent, default will be used 
-```
-
-#### （2）用法
-
-```bash
-Usage: sui keytool sign [OPTIONS] --address <ADDRESS> --data <DATA>
-
-Options:
-      --address <ADDRESS>  
-      --data <DATA>        
-      --json               Return command outputs in json format
-      --intent <INTENT>   
-```
-
-#### （3）使用
-
--   **构造待签名数据**
-
-```bash
-$ sui client pay-all-sui --input-coins 0xaeda80a73b6eca09e705f3fe4c0980ff6bbd11682822770506d985eefeeb9175 --recip
-ient yoy --gas-budget 10000000 --serialize-unsigned-transaction
-
-AAABACBfW8mp0S2iIQrUO+DYEgmJwoCkCeK+1TaRoFylBcj5OgEBAQABAAAKtkW20cU2U0pqLPRhY5Co9JIrD4sSfklKfrn93nCsxAGu2oCnO27KCecF8/5MCYD/a70RaCgidwUG2YXu/uuRdR3TDwAAAAAAIKFBk8eQNjePP9XUGoGEheBe+6FWVN6F3cpznptxrIprCrZFttHFNlNKaiz0YWOQqPSSKw+LEn5JSn65/d5wrMToAwAAAAAAAICWmAAAAAAAAA==
-```
-
--   **交易签名**
-
-```bash
-$ sui keytool sign --address yas --data AAABACBfW8mp0S2iIQrUO+DYEgmJwoCkCeK+1TaRoFylBcj5OgEBAQABAAAKtkW20cU2U0pqLPRhY5Co9JIrD4sSfklKfrn93nCsxAGu2oCnO27KCecF8/5MCYD/a70RaCgidwUG2YXu/uuRdR3TDwAAAAAAIKFBk8eQNjePP9XUGoGEheBe+6FWVN6F3cpznptxrIprCrZFttHFNlNKaiz0YWOQqPSSKw+LEn5JSn65/d5wrMToAwAAAAAAAICWmAAAAAAAAA==
-
-╭──────────────┬──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ suiAddress   │ 0x0ab645b6d1c536534a6a2cf4616390a8f4922b0f8b127e494a7eb9fdde70acc4                                                                                               │
-│ rawTxData    │ AAABACBfW8mp0S2iIQrUO+DYEgmJwoCkCeK+1TaRoFylBcj5OgEBAQABAAAKtkW20cU2U0pqLPRhY5Co9JIrD4sSfklKfrn93nCsxAGu2oCnO27KCecF8/5MCYD/a70RaCgidwUG2YXu/uuRdR3TDwAAAAAAIKFB │
-│              │ k8eQNjePP9XUGoGEheBe+6FWVN6F3cpznptxrIprCrZFttHFNlNKaiz0YWOQqPSSKw+LEn5JSn65/d5wrMToAwAAAAAAAICWmAAAAAAAAA==                                                     │
-│ intent       │ ╭─────────┬─────╮                                                                                                                                                │
-│              │ │ scope   │  0  │                                                                                                                                                │
-│              │ │ version │  0  │                                                                                                                                                │
-│              │ │ app_id  │  0  │                                                                                                                                                │
-│              │ ╰─────────┴─────╯                                                                                                                                                │
-│ rawIntentMsg │ AAAAAAABACBfW8mp0S2iIQrUO+DYEgmJwoCkCeK+1TaRoFylBcj5OgEBAQABAAAKtkW20cU2U0pqLPRhY5Co9JIrD4sSfklKfrn93nCsxAGu2oCnO27KCecF8/5MCYD/a70RaCgidwUG2YXu/uuRdR3TDwAAAAAA │
-│              │ IKFBk8eQNjePP9XUGoGEheBe+6FWVN6F3cpznptxrIprCrZFttHFNlNKaiz0YWOQqPSSKw+LEn5JSn65/d5wrMToAwAAAAAAAICWmAAAAAAAAA==                                                 │
-│ digest       │ ZeckWeZmL+knRiNvYByrgOg9ce/g1N2JoFT5w86nw7I=                                                                                                                     │
-│ suiSignature │ AEM7o1w9vXOzUwbT2jxmZDLHViVwUDVh0vHk14ykTwQzBI7LVrrv6kdllbXO/rpvVfxjwL9H6EU4uWK5E+8yDwJsM0pAD4Mtz5IJfmRVWVn3RUM/QjsOOs+EV9ligkWOGg==                             │
-╰──────────────┴──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-```
-
-![image-20240525234237406](assets/image-20240525234237406.png)
-
-### 4.2 `decode-or-verify-tx`：交易解码或签名交易验签
-
-#### （1）说明
-
-该命令会对`Base64`编码的交易进行解码，如果提供了签名信息，还会进行交易验签，并输出验签结果。
-
-```
-Given a Base64 encoded transaction bytes, decode its components. 
-
-If a signature is provided, verify the signature against the transaction and output the result
-```
-
-#### （2）用法
-
-```bash
-Usage: sui keytool decode-or-verify-tx [OPTIONS] --tx-bytes <TX_BYTES>
-
-Options:
-      --tx-bytes <TX_BYTES>    
-      --json                   Return command outputs in json format
-      --sig <SIG>              
-      --cur-epoch <CUR_EPOCH>  [default: 0]
-```
-
-#### （3）使用
-
--   **交易解码**
-
-```bash
-$ sui keytool decode-or-verify-tx --tx-bytes AAABACBfW8mp0S2iIQrUO+DYEgmJwoCkCeK+1TaRoFylBcj5OgEBAQABAAAKtkW20cU2U0pqLPRhY5Co9JIrD4sSfklKfrn93nCsxAGu2oCnO27KCecF8/5MCYD/a70RaCgidwUG2YXu/uuRdR3TDwAAAAAAIKFBk8eQNjePP9XUGoGEheBe+6FWVN6F3cpznptxrIprCrZFttHFNlNKaiz0YWOQqPSSKw+LEn5JSn65/d5wrMToAwAAAAAAAICWmAAAAAAAAA== 
-```
-
-<img src="assets/image-20240525235257649.png" alt="image-20240525235257649" style="zoom:50%;" />
-
--   **交易解码及验签**
-
-```bash
-$ sui keytool decode-or-verify-tx --tx-bytes AAABACBfW8mp0S2iIQrUO+DYEgmJwoCkCeK+1TaRoFylBcj5OgEBAQABAAAKtkW20cU2U0pqLPRhY5Co9JIrD4sSfklKfrn93nCsxAGu2oCnO27KCecF8/5MCYD/a70RaCgidwUG2YXu/uuRdR3TDwAAAAAAIKFBk8eQNjePP9XUGoGEheBe+6FWVN6F3cpznptxrIprCrZFttHFNlNKaiz0YWOQqPSSKw+LEn5JSn65/d5wrMToAwAAAAAAAICWmAAAAAAAAA== --sig AEM7o1w9vXOzUwbT2jxmZDLHViVwUDVh0vHk14ykTwQzBI7LVrrv6kdllbXO/rpvVfxjwL9H6EU4uWK5E+8yDwJsM0pAD4Mtz5IJfmRVWVn3RUM/QjsOOs+EV9ligkWOGg==
-```
-
->   输出中上半部分是交易解码后的内容，下半部分是验签结果：
-
-<img src="assets/image-20240525234956252.png" alt="image-20240525234956252" style="zoom:50%;" />
-
-## 5 更多
+## 4 更多
 
 欢迎关注微信公众号：**Move中文**，开启你的 **Sui Move** 之旅！
 
