@@ -1,3 +1,5 @@
+最直观的SUI zkLogin讲解
+
 ## 4 实践篇
 
 将`zkLogin`集成到前端应用的核心流程如下：
@@ -80,6 +82,8 @@ QjLb9zrqXv5ZtYNrYUQAvsV9aWQ
 
 ### 4.2 获取`JWT`
 
+#### （1）触发OAuth认证流程
+
 ```tsx
 async function getJWT(nonce: string) {
     const params = new URLSearchParams({
@@ -112,7 +116,7 @@ async function getJWT(nonce: string) {
 
 -   **OpenId提供方信息**
 
->   主要是取得其中的`authorization_endpoint`信息
+>   我们查询`OpenId`提供方信息，主要是为获取其中的`authorization_endpoint`信息，用于拼接OAuth认证`URL`
 
 ```json
 {
@@ -190,23 +194,76 @@ https://accounts.google.com/o/oauth2/v2/auth?client_id=899868046065-r61k9sniqirf
 
 ![image-20240529191521314](assets/image-20240529191521314.png)
 
--   **获得`JWT`**
+#### （2）获得`JWT`
 
->   一旦用户点击【继续】，确认使用谷歌账号登录后，便会得到回调，在回调信息中便包含了`JWT`信息
+>   一旦用户点击【继续】，确认使用谷歌账号登录后，便会得到回调，在回调`URL`中便包含了`JWT`信息
 
 ```bash
 http://localhost:8080/#id_token=eyJhbGciOiJSUzI1NiIsImtpZCI6IjY3MTk2NzgzNTFhNWZhZWRjMmU3MDI3NGJiZWE2MmRhMmE4YzRhMTIiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI4OTk4NjgwNDYwNjUtcjYxazlzbmlxaXJmM2tvYTYwbmd1N3VhdWo3dGswdnEuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI4OTk4NjgwNDYwNjUtcjYxazlzbmlxaXJmM2tvYTYwbmd1N3VhdWo3dGswdnEuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTAwMDM2ODIzMzUyMTQxOTczMTUiLCJlbWFpbCI6InhpYW9iYW5jbHViQGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJub25jZSI6IjRyXzJkOWpyb3hvNTZUcGp5bTgzVG9KWkV6ZyIsIm5iZiI6MTcxNjk4MTA1OCwiaWF0IjoxNzE2OTgxMzU4LCJleHAiOjE3MTY5ODQ5NTgsImp0aSI6ImQyNTdhOTczZmJlZDAxMThmYWRkMTA4YWM0OTdhNTg0YWU2YWViOWQifQ.OOnzpGsMx2CvFouRRTuzTS6oJihJbVmjt5Mc3fYPNCKwo4fam9iw_S6CqUPdfwujpjp64lfEU0LeoOvC8u80JO4Ij4oRNICZ_gPHCXpw-zbEkQ4CenQq9fqjqmqECAl4RPe_3IhmnFb_7Ag8gbtDwEDtueXWLVoBq5MA1F05TRkU-SXRfQAJb_TXhoMB5kzCvOHNElJji8em2CIN26pFQaPzzzhWmDEStFteqMoxb0h-u9ERrB0kfITSZnrEI3ACAp6O3kUTYs9qO3uvg6zQCwbxaAU7WK1Wwf2uFdaFJiG0xK832PdVWdetwQD_fPtalr0JuMqm9YQwVu8cHMRFJg&authuser=0&prompt=consent&version_info=CmxfU1ZJX0VJT2wydl9kc29ZREdBNGlQMDFCUlVSSVpsOXhYMHR4ZGtOaE4yMVhSWFI0VldKUVVYTlVWR0pGWkRadFZUUnZaM1ZYY3pWcFJTMUdjRGMwTkcxbVdYZDZiM0JhU3kxUVNWWnlid18
 ```
 
+#### （3） 存储`JWT`
 
+>   在我们的应用中，需要处理回调，存储`JWT`信息
 
+```tsx
+const Callback = () => {
+  useEffect(() => {
+    const handleCallback = async () => {
+      try {
+        // 提取URL中id_token信息，即JWT数据
+        const params = new URLSearchParams(window.location.hash.substr(1));
+        const jwtToken = params.get("id_token");
+        sessionStorage.setItem("sui_jwt_token", jwtToken);
+        
+        // 重定向到主页
+        window.location.href = "/notes";
+      } catch (error) {
+        console.error("Error handling callback:", error);
+      }
+    };
 
+    handleCallback();
+  }, []);
 
+  return (
+    <div>
+      <p>Processing callback...</p>
+    </div>
+  );
+};
 
+export default Callback;
+```
 
+-   **查看会话存储**
 
+存储`JWT`成功后，我们可以在浏览器的会话存储中，拿到的`JWT`数据
 
+![image-20240529192845320](assets/image-20240529192845320.png)
 
+#### （4）解码`JWT`
+
+```tsx
+export interface JwtPayload {
+  iss?: string;
+  sub?: string;
+  aud?: string[] | string;
+  exp?: number;
+  nbf?: number;
+  iat?: number;
+  jti?: string;
+}
+
+function getJwtData() {
+  return JSON.parse(sessionStorage.getItem("jwt_data"));
+}
+
+function decodeJwt(): JwtPayload {
+  const jwt = sessionStorage.getItem("sui_jwt_token");
+  return jwtDecode(jwt) as JwtPayload;
+}
+```
 
 
 
