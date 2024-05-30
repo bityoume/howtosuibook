@@ -8,15 +8,15 @@
 
 之前的文章我们已经介绍了：
 
--   **密钥对类**（[《SUI CLI最全命令详解3——Keytool之密钥对类》](https://learnblockchain.cn/article/8203)）
--   **单签多签类**（[《SUI CLI最全命令详解4——Keytool之单签多签类》](https://learnblockchain.cn/article/8235)）
+- **密钥对类**（[《SUI CLI最全命令详解3——Keytool之密钥对类》](https://learnblockchain.cn/article/8203)）
+- **单签多签类**（[《SUI CLI最全命令详解4——Keytool之单签多签类》](https://learnblockchain.cn/article/8235)）
 
 本文将介绍`keytool`命令集中的最后一类**zkLogin类**。
 
 >   关于`zkLogin`的介绍可以参看：
->
->   -   [《Sui zkLogin核心交互逻辑拆解》](https://learnblockchain.cn/article/8252)
->   -   [《如何构建一个基于zkLogin的SUI Move dApp》](https://learnblockchain.cn/article/7858)
+> 
+> - [《Sui zkLogin核心交互逻辑拆解》](https://learnblockchain.cn/article/8252)
+> - [《如何构建一个基于zkLogin的SUI Move dApp》](https://learnblockchain.cn/article/7858)
 
 ## 2 zkLogin类
 
@@ -26,15 +26,15 @@
 
 这个接口感觉没有实际意义，只是用来体验`zkLogin`的整个流程，包括：
 
--   创建`OAuth`授权连接
--   用户登录后，获取并填入回调连接
--   访问官方盐值服务器获取盐值
--   访问零知识证明服务器获取零知识证明
--   领水
--   创建测试转账交易（*有BUG，已提PR [#17989](https://github.com/MystenLabs/sui/pull/17989)*）
--   使用临时私钥签名交易
--   获取零知识证明签名（`partialZkLoginSignature`）
--   组装成`zkLogin`签名（`zkLoginSignature`）
+- 创建`OAuth`授权连接
+- 用户登录后，获取并填入回调连接
+- 访问官方盐值服务器获取盐值
+- 访问零知识证明服务器获取零知识证明
+- 领水
+- 创建测试转账交易
+- 使用临时私钥签名交易
+- 获取零知识证明签名（`partialZkLoginSignature`）
+- 组装成`zkLogin`签名（`zkLoginSignature`）
 
 ```
 Given the max_epoch, generate an OAuth url, ask user to paste the redirect with id_token, call salt server, then call the prover server, create a test transaction, use the ephemeral key to sign and execute it by assembling to a serialized zkLogin signature
@@ -42,8 +42,8 @@ Given the max_epoch, generate an OAuth url, ask user to paste the redirect with 
 
 #### （2）用法
 
--   若设置`--test-multisig `将使用多签地址（`zkLogin`地址+普通公钥地址）
--   若设置`--sign-with-sk`将使用传统私钥签名，否则使用`zkLogin`签名
+- 若设置`--test-multisig `将使用多签地址（`zkLogin`地址+普通公钥地址）
+- 若设置`--sign-with-sk`将使用传统私钥签名，否则使用`zkLogin`签名
 
 ```bash
 Usage: sui keytool zk-login-sign-and-execute-tx [OPTIONS] --max-epoch <MAX_EPOCH>
@@ -65,7 +65,7 @@ Options:
 $ sui keytool zk-login-sign-and-execute-tx --max-epoch 70
 ```
 
--   **创建本地临时公私钥对**
+- **创建本地临时公私钥对**
 
 ```bash
 Ephemeral keypair: Ok("suiprivkey1qr45fwuwmjnjehprdxkvhwkyjmf6qk00mhqdl3xk267q74rgfy7c7er5xmx")
@@ -76,13 +76,13 @@ Keys saved as Base64 with 33 bytes `flag || privkey` ($BASE64_STR).
 Ephemeral pubkey (BigInt): 28052518987115222205950885460171773646293850437629977637885534225349525629480
 ```
 
--   **创建随机数**
+- **创建随机数**
 
 ```bash
 Jwt randomness: 101460194016860753987736196028199365769
 ```
 
--   **创建OAuth认证URL**
+- **创建OAuth认证URL**
 
 ```bash
 Visit URL (Google): https://accounts.google.com/o/oauth2/v2/auth?client_id=25769832374-famecqrhe2gkebt5fvqms2263046lj96.apps.googleusercontent.com&response_type=id_token&redirect_uri=https://sui.io/&scope=openid&nonce=3-QOndCJH1FxFKKWagDYtp55tNY
@@ -100,19 +100,19 @@ Visit URL (Credenza3): https://accounts.credenza3.com/oauth2/authorize?client_id
 Finish login and paste the entire URL here (e.g. https://sui.io/#id_token=...):
 ```
 
--   **拷贝地址在浏览器上完成登录授权，将回调URL拷贝到终端**
+- **拷贝地址在浏览器上完成登录授权，将回调URL拷贝到终端**
 
 ```bash
 https://sui.io/#id_token=eyJhbGciOiJSUzI1NiIsImtpZCI6IjY3MTk2NzgzNTFhNWZhZWRjMmU3MDI3NGJiZWE2MmRhMmE4YzRhMTIiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5j~~~~~~Zjc1YmIwIn0.SjG7u1Sl~~~~~~FMUpRM0UyWjNsUFQwUjVUUV8
 ```
 
--   **创建用户盐值**
+- **创建用户盐值**
 
 ```bash
 User salt: 129390038577185583942388216820280642146
 ```
 
--   **创建零知识证明**
+- **创建零知识证明**
 
 ```bash
 ZkLogin inputs:
@@ -120,7 +120,7 @@ ZkLogin inputs:
 test_multisig false
 ```
 
--   **创建zkLogin地址，领水并发送测试交易**
+- **创建zkLogin地址，领水并发送测试交易**
 
 >   这里会输出交易字节和`zkLogin`签名，在下一个命令将会用到。
 
@@ -134,7 +134,7 @@ Single zklogin sig Serialized: "BQNMMzQ2NDEyMjEyNDUyMzA0NzE4OTQ3MTMwMjkxODkzMjUy
 ╰──────────┴────────────────────────────────────────────────╯
 ```
 
--   **浏览器查看交易**
+- **浏览器查看交易**
 
 https://devnet.suivision.xyz/txblock/FAbz83Q1PhKHJSw1Kj1oWBfCTegzFoHnMdRM88dE2A64?tab=User+Signatures
 
